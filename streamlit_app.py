@@ -510,15 +510,19 @@ with col_right:
                                     ax_map.tick_params(left=False, right=False, top=False, bottom=False)
 
                                     png_file = f"maps_png/intro_{i}.png"
-                                    fig.savefig(png_file, facecolor='#000000', bbox_inches='tight', pad_inches=0, dpi=200)
+                                    fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0)
                                     plt.close(fig)
 
+                                    # Abrir e forçar tamanho exato
                                     img = Image.open(png_file)
-                                    img = img.resize((1920, 1080), Image.Resampling.LANCZOS)
-                                    # Garantir que a imagem seja RGB
-                                    if img.mode != 'RGB':
-                                        img = img.convert('RGB')
-                                    img.save(png_file)
+                                    # Criar nova imagem com fundo preto e tamanho exato
+                                    final_img = Image.new('RGB', (TARGET_WIDTH, TARGET_HEIGHT), (0, 0, 0))
+                                    # Redimensionar mantendo proporção
+                                    img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
+                                    # Centralizar na imagem final
+                                    offset = ((TARGET_WIDTH - img.width) // 2, (TARGET_HEIGHT - img.height) // 2)
+                                    final_img.paste(img, offset)
+                                    final_img.save(png_file, quality=95)
                                     images_files.append(png_file)
                                 # SEQUÊNCIA PRINCIPAL: Focos de incêndio
                                 for i in range(len(focos_per_day)):
