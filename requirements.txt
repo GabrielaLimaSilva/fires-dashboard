@@ -7,3 +7,4 @@ moviepy
 cartopy
 pillow
 pydub>=0.26.0
+audioop-lts
