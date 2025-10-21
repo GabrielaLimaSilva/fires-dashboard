@@ -150,12 +150,13 @@ with col_left:
         st.markdown("#### 💾 Download")
         col_d1, col_d2 = st.columns(2)
         with col_d1:
-            if 'mp3_file' in st.session_state:
+            if 'mp3_file' in st.session_state and os.path.exists(st.session_state['mp3_file']):
                 with open(st.session_state['mp3_file'], "rb") as f:
                     st.download_button("🎵 MP3", f.read(), st.session_state['mp3_file'], "audio/mpeg", use_container_width=True)
         with col_d2:
-            with open(st.session_state['video_file'], "rb") as f:
-                st.download_button("🎬 MP4", f.read(), st.session_state['video_file'], "video/mp4", use_container_width=True)
+            if os.path.exists(st.session_state['video_file']):
+                with open(st.session_state['video_file'], "rb") as f:
+                    st.download_button("🎬 MP4", f.read(), st.session_state['video_file'], "video/mp4", use_container_width=True)
 
 with col_right:
     if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
@@ -187,13 +188,52 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                 'peak': fires_per_day['n_fires'].max()
             }
             
+            # Generate music
             melody = compose_fire_symphony(fires_per_day, total_duration_sec)
             melody.export("fires_sound.mp3", format="mp3", bitrate="192k")
             st.session_state['mp3_file'] = "fires_sound.mp3"
             
+            # Generate maps
+            lon_min = longitude_center - radius_km/100
+            lon_max = longitude_center + radius_km/100
+            lat_min = latitude_center - radius_km/100
+            lat_max = latitude_center + radius_km/100
             images_files = []
-            # Simplified map generation would go here
-            # For now, create a placeholder
+            all_days = fires_per_day['acq_date'].tolist()
+            
+            # Intro frames
+            for i in range(30):
+                fig = plt.figure(figsize=(19.2, 10.8), dpi=100)
+                fig.patch.set_facecolor('black')
+                ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
+                ax.set_extent([lon_min, lon_max, lat_min, lat_max])
+                ax.add_feature(cfeature.LAND, facecolor='none', edgecolor='gray', linewidth=0.8)
+                ax.plot(longitude_center, latitude_center, 'ro', markersize=10, transform=ccrs.PlateCarree())
+                png_file = f"maps_png/intro_{i}.png"
+                fig.savefig(png_file, facecolor='black', bbox_inches='tight', pad_inches=0)
+                plt.close(fig)
+                images_files.append(png_file)
+            
+            # Fire frames
+            for day, n_fires in fires_per_day.values:
+                df_day = df_local[df_local['acq_date'] == day]
+                fig = plt.figure(figsize=(19.2, 10.8), dpi=100)
+                fig.patch.set_facecolor('black')
+                ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
+                ax.set_extent([lon_min, lon_max, lat_min, lat_max])
+                ax.add_feature(cfeature.LAND, facecolor='none', edgecolor='gray', linewidth=0.8)
+                ax.scatter(df_day[lon_col], df_day[lat_col], c='red', s=100, alpha=0.7, transform=ccrs.PlateCarree())
+                png_file = f"maps_png/day_{day}.png"
+                fig.savefig(png_file, facecolor='black', bbox_inches='tight', pad_inches=0)
+                plt.close(fig)
+                images_files.append(png_file)
+            
+            # Create video
+            frame_duration = total_duration_sec / len(images_files)
+            clip = ImageSequenceClip(images_files, fps=1/frame_duration)
+            audio_clip = AudioFileClip("fires_sound.mp3")
+            clip = clip.set_audio(audio_clip)
+            clip.write_videofile("fires_video.mp4", codec="libx264", audio_codec="aac", verbose=False, logger=None)
             
             st.session_state['video_file'] = "fires_video.mp4"
             st.session_state['generate_clicked'] = False
