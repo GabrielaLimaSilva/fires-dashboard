@@ -667,10 +667,9 @@ with col_left:
                 )
 
 with col_right:
-    if 'video_file' in st.session_state:
-        st.markdown('<div class="video-container">', unsafe_allow_html=True)
+    if 'video_file' in st.session_state and os.path.exists(st.session_state['video_file']):
+        st.markdown("### 🎬 Your Creation")
         st.video(st.session_state['video_file'])
-        st.markdown('</div>', unsafe_allow_html=True)
     else:
         st.markdown("""
             <div class="video-container">
@@ -943,6 +942,7 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                             mp4_file = "fires_cinematic.mp4"
                             clip.write_videofile(mp4_file, codec="libx264", audio_codec="aac", verbose=False, logger=None)
                             st.session_state['video_file'] = mp4_file
+                            st.session_state['generate_clicked'] = False  # Limpar flag
 
                             status.update(label="✅ Complete!", state="complete")
 
