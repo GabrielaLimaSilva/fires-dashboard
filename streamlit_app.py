@@ -1,4 +1,3 @@
-%%writefile fires_dashboard.py
 filename = 'Hear the Fire'
 import streamlit as st
 import pandas as pd
