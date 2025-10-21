@@ -246,7 +246,7 @@ with col1:
 with col2:
     day_range = st.number_input("Days", value=10, min_value=1, max_value=30)
 
-total_duration_sec = st.sidebar.slider("Duration (sec)", 5, 60, 14, 1)
+total_duration_sec = 1.4*day_range
 
 os.makedirs("maps_png", exist_ok=True)
 
@@ -329,7 +329,7 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             for i in range(intro_frames):
                 progress = (i + 1) / intro_frames
                 progress_bar.progress(40 + int(10 * progress))
-                fig = plt.figure(figsize=(12, 9), dpi=100)  # Reduzido de (20,15) dpi=200
+                fig = plt.figure(figsize= (20,15) , dpi=100)  # Reduzido de (20,15) dpi=200
                 fig.patch.set_facecolor('black')
                 gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
                 ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
@@ -390,7 +390,7 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                     frame_progress = (i * n_fade_frames + k) / total_fire_frames
                     progress_bar.progress(50 + int(40 * frame_progress))
                     alpha = (k+1)/n_fade_frames
-                    fig = plt.figure(figsize=(12, 9), dpi=100)  # Reduzido de (20,15) dpi=200
+                    fig = plt.figure(figsize= (20,15) , dpi=100)  # Reduzido de (20,15) dpi=200
                     fig.patch.set_facecolor('black')
                     gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
                     ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
