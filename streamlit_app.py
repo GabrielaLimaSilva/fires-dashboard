@@ -140,19 +140,26 @@ st.markdown("""
         .video-container {
             background: #000;
             border-radius: 16px;
-            overflow: hidden;
+            overflow: visible;
             box-shadow: 0 12px 40px rgba(255, 68, 68, 0.5);
             border: 2px solid rgba(255, 140, 0, 0.3);
-            height: calc(100vh - 180px);
+            height: calc(100vh - 220px);
             display: flex;
             align-items: center;
             justify-content: center;
+            padding: 0.5rem;
         }
 
         .video-container video {
             width: 100%;
             height: 100%;
             object-fit: contain;
+            border-radius: 12px;
+        }
+        
+        /* Garantir que os controles do vídeo fiquem visíveis */
+        video::-webkit-media-controls-panel {
+            background: rgba(0, 0, 0, 0.8) !important;
         }
 
         .stButton>button {
