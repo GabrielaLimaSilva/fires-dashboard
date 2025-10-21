@@ -280,22 +280,36 @@ with col_right:
         st.markdown('<div class="video-container"><div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.5);"><h2 style="color: #ffd700;">🎬 Your Video Will Appear Here</h2><p>Configure parameters and click GENERATE.</p></div></div>', unsafe_allow_html=True)
 
 if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+    
     try:
+        status_text.text("🔍 Fetching fire data from NASA...")
+        progress_bar.progress(5)
         response = requests.get(f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{map_key}/MODIS_SP/world/{day_range}/{data_date}", timeout=30)
+        progress_bar.progress(10)
         df = pd.read_csv(StringIO(response.text))
         df.columns = df.columns.str.strip().str.lower()
         lat_col = next((c for c in df.columns if 'lat' in c), None)
         lon_col = next((c for c in df.columns if 'lon' in c), None)
+        
+        status_text.text("📊 Processing fire data...")
+        progress_bar.progress(15)
         df['dist_km'] = distance_km(latitude_center, longitude_center, df[lat_col], df[lon_col])
         df_local = df[df['dist_km'] <= radius_km].copy()
+        progress_bar.progress(20)
         
         if not df_local.empty:
             fires_per_day = df_local.groupby('acq_date').size().reset_index(name='n_fires')
             st.session_state['stats_data'] = {'total': len(df_local), 'days': len(fires_per_day), 'avg': fires_per_day['n_fires'].mean(), 'peak': fires_per_day['n_fires'].max()}
             
+            status_text.text("🎵 Composing fire symphony...")
+            progress_bar.progress(25)
             melody = compose_fire_symphony(fires_per_day, total_duration_sec)
+            progress_bar.progress(35)
             melody.export("fires_sound.mp3", format="mp3", bitrate="192k")
             st.session_state['mp3_file'] = "fires_sound.mp3"
+            progress_bar.progress(40)
             
             lon_min = longitude_center - radius_km/100
             lon_max = longitude_center + radius_km/100
@@ -307,8 +321,10 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             n_fade_frames = 10
             intro_frames = 30
             
+            status_text.text("🎬 Creating intro animation...")
             for i in range(intro_frames):
                 progress = (i + 1) / intro_frames
+                progress_bar.progress(40 + int(10 * progress))
                 fig = plt.figure(figsize=(20, 15), dpi=200)
                 fig.patch.set_facecolor('black')
                 gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
@@ -358,12 +374,17 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                 final_img.save(png_file, quality=95)
                 images_files.append(png_file)
             
+            status_text.text("🔥 Rendering fire visualizations...")
+            total_fire_frames = n_days * n_fade_frames
             for i, (day, n_fires) in enumerate(fires_per_day.values):
+                status_text.text(f"🔥 Rendering day {i+1}/{n_days}: {day} ({n_fires} fires)")
                 df_day = df_local[df_local['acq_date'] == day]
                 frp_norm = np.zeros(len(df_day))
                 if 'frp' in df_day.columns and not df_day['frp'].isna().all():
                     frp_norm = (df_day['frp'] - df_day['frp'].min()) / (df_day['frp'].max() - df_day['frp'].min() + 1e-6)
                 for k in range(n_fade_frames):
+                    frame_progress = (i * n_fade_frames + k) / total_fire_frames
+                    progress_bar.progress(50 + int(40 * frame_progress))
                     alpha = (k+1)/n_fade_frames
                     fig = plt.figure(figsize=(20, 15), dpi=200)
                     fig.patch.set_facecolor('black')
@@ -469,6 +490,9 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                     final_img.save(png_file)
                     images_files.append(png_file)
             
+            status_text.text("🎬 Assembling video...")
+            progress_bar.progress(90)
+            
             intro_duration = 4.0
             fires_duration = total_duration_sec
             intro_frame_duration = intro_duration / intro_frames
@@ -488,13 +512,23 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             clip = clip.set_audio(full_audio)
             clip.fps = 24
             
+            status_text.text("💾 Exporting final video...")
+            progress_bar.progress(95)
             clip.write_videofile("fires_video.mp4", codec="libx264", audio_codec="aac", verbose=False, logger=None)
+            progress_bar.progress(100)
+            status_text.text("✅ Complete!")
             st.session_state['video_file'] = "fires_video.mp4"
             st.session_state['generate_clicked'] = False
             st.rerun()
         else:
+            progress_bar.progress(100)
+            status_text.empty()
+            progress_bar.empty()
             st.error("⚠️ No fires found.")
             st.session_state['generate_clicked'] = False
     except Exception as e:
+        progress_bar.progress(100)
+        status_text.empty()
+        progress_bar.empty()
         st.error(f"❌ Error: {str(e)}")
         st.session_state['generate_clicked'] = False
