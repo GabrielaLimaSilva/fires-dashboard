@@ -212,12 +212,108 @@ def generate_tone(frequency, duration_ms, waveform='sine', amplitude=0.5):
         tone = Sine(frequency).to_audio_segment(duration=duration_ms)
         tone = tone.overlay(Sine(frequency * 2).to_audio_segment(duration=duration_ms) - 15)
         tone = tone.overlay(Sine(frequency * 3).to_audio_segment(duration=duration_ms) - 22)
+    elif waveform == 'pad':
+        # Pad synth style - rico e envolvente
+        tone = Sine(frequency).to_audio_segment(duration=duration_ms)
+        tone = tone.overlay(Sine(frequency * 1.01).to_audio_segment(duration=duration_ms) - 8)  # Detuning
+        tone = tone.overlay(Sine(frequency * 0.99).to_audio_segment(duration=duration_ms) - 8)
+        tone = tone.overlay(Sine(frequency * 2).to_audio_segment(duration=duration_ms) - 18)
     else:
         tone = Sine(frequency).to_audio_segment(duration=duration_ms)
     
-    # Reduzido para sons mais suaves
     tone = tone.apply_gain(-50 + amplitude * 25)
     return tone
+
+
+def create_bass_line(root_freq, duration_ms, pattern='pulse'):
+    """Cria uma linha de baixo rítmica."""
+    bass = AudioSegment.silent(duration=duration_ms)
+    
+    if pattern == 'pulse':
+        # Pulso rítmico - minimalista
+        pulse_duration = min(150, duration_ms // 4)
+        for i in range(3):
+            pos = int(i * duration_ms / 3)
+            note = Sine(root_freq / 2).to_audio_segment(duration=pulse_duration)
+            note = note.apply_gain(-35).fade_in(10).fade_out(100)
+            bass = bass.overlay(note, position=pos)
+    
+    elif pattern == 'walking':
+        # Linha de baixo andante
+        notes = [root_freq / 2, root_freq / 2 * 1.125, root_freq / 2 * 1.25, root_freq / 2 * 1.125]
+        note_duration = duration_ms // len(notes)
+        for i, freq in enumerate(notes):
+            note = Sine(freq).to_audio_segment(duration=note_duration)
+            note = note.apply_gain(-38).fade_in(20).fade_out(50)
+            bass = bass.overlay(note, position=i * note_duration)
+    
+    elif pattern == 'sustained':
+        # Baixo sustentado
+        note = Sine(root_freq / 2).to_audio_segment(duration=duration_ms)
+        note = note.apply_gain(-40).fade_in(100).fade_out(200)
+        bass = bass.overlay(note)
+    
+    return bass
+
+
+def create_rhythm_layer(duration_ms, intensity=0.5, pattern='ambient'):
+    """Cria camada rítmica sutil."""
+    rhythm = AudioSegment.silent(duration=duration_ms)
+    
+    if pattern == 'ambient':
+        # Pulsos sutis de percussão
+        num_hits = int(3 + intensity * 2)
+        for i in range(num_hits):
+            pos = int(i * duration_ms / num_hits)
+            # Tom percussivo agudo
+            hit = Sine(800 + i * 100).to_audio_segment(duration=60)
+            hit = hit.apply_gain(-45 + intensity * 5).fade_out(50)
+            rhythm = rhythm.overlay(hit, position=pos)
+    
+    elif pattern == 'groove':
+        # Padrão rítmico mais presente
+        beat_duration = duration_ms // 4
+        for i in range(4):
+            pos = i * beat_duration
+            # Kick sutil
+            if i % 2 == 0:
+                kick = Sine(60).to_audio_segment(duration=80)
+                kick = kick.apply_gain(-40).fade_out(60)
+                rhythm = rhythm.overlay(kick, position=pos)
+            # Hi-hat
+            hat = Sine(3000).to_audio_segment(duration=30)
+            hat = hat.apply_gain(-48).fade_out(25)
+            rhythm = rhythm.overlay(hat, position=pos)
+    
+    return rhythm
+
+
+def create_melodic_phrase(base_freq, duration_ms, scale_notes, phrase_type='ascending'):
+    """Cria uma frase melódica."""
+    melody = AudioSegment.silent(duration=duration_ms)
+    
+    if phrase_type == 'ascending':
+        # Frase ascendente
+        note_indices = [0, 2, 4, 6]
+    elif phrase_type == 'descending':
+        # Frase descendente
+        note_indices = [6, 4, 2, 0]
+    elif phrase_type == 'wave':
+        # Onda melódica
+        note_indices = [0, 3, 6, 3]
+    else:
+        # Aleatório suave
+        note_indices = [0, 2, 3, 5]
+    
+    note_duration = duration_ms // len(note_indices)
+    
+    for i, idx in enumerate(note_indices):
+        freq = base_freq * (scale_notes[idx % len(scale_notes)] / scale_notes[0])
+        note = generate_tone(freq, note_duration, 'sine', 0.4)
+        note = note.fade_in(50).fade_out(100)
+        melody = melody.overlay(note, position=i * note_duration)
+    
+    return melody
 
 
 def create_ambient_layer(duration_ms, intensity=0.3):
@@ -370,106 +466,189 @@ def create_transition(duration_ms, transition_type='rise', intensity=0.5):
 
 
 def compose_fire_symphony(fires_per_day_df, total_duration_sec=14):
-    """Compõe a trilha sonora completa com todas as melhorias."""
+    """Compõe a trilha sonora completa com estrutura musical."""
     n_days = len(fires_per_day_df)
     duration_per_day_ms = int((total_duration_sec * 1000) / n_days)
     
-    transition_ms = min(80, duration_per_day_ms // 5)  # Transições mais curtas
-    chord_ms = duration_per_day_ms - transition_ms
-    
-    # Escala pentatônica mais focada em registros médios/agudos (mais etérea)
-    notes_penta = [
-        130.81, 146.83, 164.81, 174.61, 196.00, 220.00,  # C3-A3
-        261.63, 293.66, 329.63, 349.23, 392.00, 440.00,  # C4-A4
-        523.25, 587.33, 659.25, 698.46, 783.99           # C5-G5
+    # Escala pentatônica maior (alegre e melodiosa)
+    scale_notes = [
+        261.63,  # C4
+        293.66,  # D4
+        329.63,  # E4
+        392.00,  # G4
+        440.00,  # A4
+        523.25,  # C5
+        587.33,  # D5
+        659.25,  # E5
+        783.99,  # G5
+        880.00   # A5
     ]
     
     max_fires = fires_per_day_df['n_fires'].max()
     min_fires = fires_per_day_df['n_fires'].min()
     mean_fires = fires_per_day_df['n_fires'].mean()
     
+    # Definir seções musicais baseadas no número de dias
+    intro_days = min(2, n_days // 4)
+    outro_days = min(2, n_days // 4)
+    main_days = n_days - intro_days - outro_days
+    
+    # Camada ambiente constante
     ambient_layer = create_ambient_layer(
         total_duration_sec * 1000, 
-        intensity=min(0.3, mean_fires / max_fires)  # Reduzido de 0.5 para 0.3
+        intensity=0.25
     )
     
     melody_segments = []
-    last_note_idx = np.random.randint(5, 9)  # Começar no registro médio
-    last_intensity = 0.2
+    bass_segments = []
+    rhythm_segments = []
+    
+    # Escolher tonalidade baseada na intensidade média
+    root_note_idx = 0 if mean_fires < (max_fires * 0.4) else 2
     
     for day_idx, (day, n_fires) in enumerate(fires_per_day_df.values):
-        # Intensidade mais controlada
-        intensity = np.interp(n_fires, [min_fires, max_fires], [0.15, 0.75])  # Reduzido de 0.2-0.95 para 0.15-0.75
+        intensity = np.interp(n_fires, [min_fires, max_fires], [0.2, 0.8])
         
-        intensity_change = intensity - last_intensity
-        
-        # Movimentos melódicos mais suaves
-        if intensity_change > 0.3:
-            shift = np.random.randint(2, 5)  # Reduzido
-        elif intensity_change > 0.1:
-            shift = np.random.randint(1, 3)
-        elif intensity_change < -0.3:
-            shift = np.random.randint(-5, -2)
-        elif intensity_change < -0.1:
-            shift = np.random.randint(-3, -1)
+        # === DETERMINAR SEÇÃO MUSICAL ===
+        if day_idx < intro_days:
+            section = 'intro'
+        elif day_idx >= n_days - outro_days:
+            section = 'outro'
         else:
-            shift = np.random.randint(-1, 2)
+            section = 'main'
         
-        note_idx = np.clip(last_note_idx + shift, 2, len(notes_penta) - 4)
+        # === ESCOLHER NOTA DA MELODIA ===
+        # Usar intensidade para escolher nota na escala
+        note_idx = int(np.interp(intensity, [0, 1], [0, len(scale_notes) - 3]))
+        note_idx = np.clip(note_idx, 0, len(scale_notes) - 3)
         
-        f_base = notes_penta[note_idx]
+        base_freq = scale_notes[note_idx]
         
-        # Acordes mais simples e consonantes
-        if intensity < 0.4:
-            intervals = [1, 1.25, 1.5]  # Tríade maior suave
-        elif intensity < 0.6:
-            intervals = [1, 1.25, 1.5, 2]  # Adicionar oitava
+        # === CONSTRUIR ACORDE ===
+        if section == 'intro':
+            # Intro: acordes simples e etéreos
+            intervals = [1, 1.5, 2]  # Quinta + oitava
+            waveform = 'pad'
+            chord_amplitude = 0.25 + intensity * 0.15
+        elif section == 'outro':
+            # Outro: resolução suave
+            intervals = [1, 1.25, 1.5]  # Tríade maior
+            waveform = 'sine'
+            chord_amplitude = 0.3 - (day_idx - (n_days - outro_days)) * 0.05
         else:
-            intervals = [1, 1.2, 1.5, 1.875]  # Acorde mais cheio mas ainda consonante
+            # Main: acordes mais ricos
+            if intensity < 0.4:
+                intervals = [1, 1.25, 1.5]  # Tríade
+            elif intensity < 0.7:
+                intervals = [1, 1.25, 1.5, 2]  # Tríade + oitava
+            else:
+                intervals = [1, 1.2, 1.5, 1.8, 2]  # Acorde mais cheio
+            waveform = 'pad' if intensity > 0.5 else 'sine'
+            chord_amplitude = 0.3 + intensity * 0.2
         
-        frequencies = [f_base * x for x in intervals]
+        # Criar acorde principal
+        chord = AudioSegment.silent(duration=duration_per_day_ms)
+        pan_positions = [-0.3, 0, 0.3, -0.15, 0.15]
         
-        chord = epic_chord_v2(
-            frequencies, 
-            chord_ms, 
-            fire_intensity=intensity,
-            day_index=day_idx,
-            total_days=n_days
-        )
+        frequencies = [base_freq * x for x in intervals]
+        
+        for i, freq in enumerate(frequencies):
+            note = generate_tone(freq, duration_per_day_ms, waveform, chord_amplitude)
+            
+            # Envelope musical
+            attack = int(duration_per_day_ms * 0.15)
+            release = int(duration_per_day_ms * 0.6)
+            note = note.fade_in(attack).fade_out(release)
+            
+            # Panorâmica
+            note = note.pan(pan_positions[i % len(pan_positions)])
+            chord = chord.overlay(note)
+        
+        # Adicionar delay sutil em acordes intensos
+        if intensity > 0.6 and section == 'main':
+            delay_ms = int(duration_per_day_ms * 0.4)
+            chord = chord.overlay(chord - 10, position=delay_ms)
         
         melody_segments.append(chord)
         
-        # Menos impacts, mais transições suaves
-        is_peak = (day_idx > 0 and day_idx < n_days - 1 and 
-                   n_fires > fires_per_day_df.iloc[day_idx - 1]['n_fires'] and
-                   n_fires > fires_per_day_df.iloc[day_idx + 1]['n_fires'] and
-                   intensity > 0.8)  # Threshold aumentado
-        
-        if is_peak:
-            transition = create_transition(transition_ms, 'impact', intensity)
-        elif intensity_change > 0.25:  # Threshold aumentado
-            transition = create_transition(transition_ms, 'rise', intensity)
-        elif intensity_change < -0.25:
-            transition = create_transition(transition_ms, 'fall', intensity)
+        # === LINHA DE BAIXO ===
+        if section == 'intro':
+            bass_pattern = 'sustained'
+        elif section == 'outro':
+            bass_pattern = 'sustained'
+        elif intensity > 0.6:
+            bass_pattern = 'walking'
         else:
-            transition = AudioSegment.silent(duration=transition_ms)
+            bass_pattern = 'pulse'
         
-        melody_segments.append(transition)
+        bass = create_bass_line(base_freq, duration_per_day_ms, bass_pattern)
+        bass_segments.append(bass)
         
-        last_note_idx = note_idx
-        last_intensity = intensity
+        # === CAMADA RÍTMICA ===
+        if section == 'intro' or section == 'outro':
+            rhythm_pattern = 'ambient'
+        else:
+            rhythm_pattern = 'groove' if intensity > 0.5 else 'ambient'
+        
+        rhythm = create_rhythm_layer(duration_per_day_ms, intensity, rhythm_pattern)
+        rhythm_segments.append(rhythm)
+        
+        # === FRASES MELÓDICAS (ocasionais) ===
+        # Adicionar melodia em momentos específicos
+        if day_idx > 0 and day_idx % 3 == 0 and section == 'main':
+            prev_intensity = np.interp(
+                fires_per_day_df.iloc[day_idx - 1]['n_fires'],
+                [min_fires, max_fires],
+                [0.2, 0.8]
+            )
+            
+            if intensity > prev_intensity:
+                phrase = create_melodic_phrase(
+                    base_freq * 2,  # Oitava acima
+                    duration_per_day_ms,
+                    scale_notes,
+                    'ascending'
+                )
+                phrase = phrase - 12  # Mais suave
+                chord = chord.overlay(phrase)
+            elif intensity < prev_intensity - 0.2:
+                phrase = create_melodic_phrase(
+                    base_freq * 2,
+                    duration_per_day_ms,
+                    scale_notes,
+                    'descending'
+                )
+                phrase = phrase - 12
+                chord = chord.overlay(phrase)
     
-    melody = sum(melody_segments)
+    # === MIXAGEM FINAL ===
     
-    # Mixagem mais equilibrada
-    final_mix = melody.overlay(ambient_layer - 3)  # Ambiente ainda mais baixo
+    # Combinar todas as camadas
+    melody_track = sum(melody_segments)
+    bass_track = sum(bass_segments)
+    rhythm_track = sum(rhythm_segments)
     
-    # Fade mais longo e suave
-    final_mix = final_mix.fade_in(1000).fade_out(2000)
+    # Balancear volumes
+    final_mix = melody_track  # Base
+    final_mix = final_mix.overlay(bass_track - 2)  # Baixo um pouco mais baixo
+    final_mix = final_mix.overlay(rhythm_track - 5)  # Ritmo sutil
+    final_mix = final_mix.overlay(ambient_layer - 6)  # Ambiente no fundo
     
-    # Normalização mais suave para evitar picos
-    final_mix = final_mix.apply_gain(-3)  # Reduzir 3dB antes de normalizar
-    final_mix = final_mix.normalize(headroom=0.3)  # Deixar headroom
+    # === MASTERIZAÇÃO ===
+    
+    # Fade musical
+    intro_fade = int(total_duration_sec * 1000 * 0.08)  # 8% do total
+    outro_fade = int(total_duration_sec * 1000 * 0.15)  # 15% do total
+    
+    final_mix = final_mix.fade_in(intro_fade).fade_out(outro_fade)
+    
+    # Compressão suave (simulada)
+    final_mix = final_mix.apply_gain(-2)
+    final_mix = final_mix.normalize(headroom=0.5)
+    
+    # Adicionar reverb sutil (via delay longo)
+    reverb = final_mix - 20
+    final_mix = final_mix.overlay(reverb, position=80)
     
     return final_mix
 
