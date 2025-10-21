@@ -230,7 +230,6 @@ progress_placeholder = st.empty()
 status_placeholder = st.empty()
 
 st.sidebar.markdown("### ⚙️ Settings")
-map_key = "a4abee84e580a96ff5ba9bd54cd11a8d"
 
 col1, col2 = st.sidebar.columns(2)
 with col1:
