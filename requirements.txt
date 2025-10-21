@@ -3,7 +3,7 @@ pandas
 numpy
 requests
 matplotlib
-pydub
 moviepy
 cartopy
 pillow
+pydub>=0.26.0
