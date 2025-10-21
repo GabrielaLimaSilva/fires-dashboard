@@ -8,3 +8,7 @@ moviepy
 cartopy
 pillow
 audioop-lts; python_version>='3.13'
+imageio
+imageio-ffmpeg
+tqdm
+decorator
