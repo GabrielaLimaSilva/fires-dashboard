@@ -199,9 +199,7 @@ plt.style.use("dark_background")
 # -------------------
 
 def generate_tone(frequency, duration_ms, waveform='sine', amplitude=0.5):
-    """
-    Gera diferentes timbres baseados na forma de onda.
-    """
+    """Gera diferentes timbres baseados na forma de onda."""
     if waveform == 'sine':
         tone = Sine(frequency).to_audio_segment(duration=duration_ms)
     elif waveform == 'square':
@@ -222,9 +220,7 @@ def generate_tone(frequency, duration_ms, waveform='sine', amplitude=0.5):
 
 
 def create_ambient_layer(duration_ms, intensity=0.3):
-    """
-    Cria uma camada de som ambiente que evolui lentamente.
-    """
+    """Cria uma camada de som ambiente que evolui lentamente."""
     drone1 = Sine(55).to_audio_segment(duration=duration_ms)
     drone2 = Sine(82.4).to_audio_segment(duration=duration_ms)
     
@@ -245,9 +241,7 @@ def create_ambient_layer(duration_ms, intensity=0.3):
 
 
 def epic_chord_v2(frequencies, duration_ms, fire_intensity=0.5, day_index=0, total_days=1):
-    """
-    Versão melhorada dos acordes com mais diferenciação e impacto.
-    """
+    """Versão melhorada dos acordes com mais diferenciação e impacto."""
     chord = AudioSegment.silent(duration=duration_ms)
     
     if fire_intensity < 0.3:
@@ -311,9 +305,7 @@ def epic_chord_v2(frequencies, duration_ms, fire_intensity=0.5, day_index=0, tot
 
 
 def create_transition(duration_ms, transition_type='rise', intensity=0.5):
-    """
-    Cria efeitos de transição entre dias.
-    """
+    """Cria efeitos de transição entre dias."""
     if transition_type == 'silence':
         return AudioSegment.silent(duration=duration_ms)
     
@@ -369,9 +361,7 @@ def create_transition(duration_ms, transition_type='rise', intensity=0.5):
 
 
 def compose_fire_symphony(fires_per_day_df, total_duration_sec=14):
-    """
-    Compõe a trilha sonora completa com todas as melhorias.
-    """
+    """Compõe a trilha sonora completa com todas as melhorias."""
     n_days = len(fires_per_day_df)
     duration_per_day_ms = int((total_duration_sec * 1000) / n_days)
     
@@ -669,6 +659,11 @@ with col_right:
                                     progress = (i + 1) / intro_frames
                                 
                                     fig = plt.figure(figsize=(20, 15), dpi=200)
+                                    fig.patch.set_facecolor('black')
+                                    gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
+                                    ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
+                                    ax_bar = fig.add_subplot(gs[1])
+                                
                                     fig.patch.set_facecolor('#000000')
                                     ax_map.set_facecolor('black')
                                     ax_bar.set_facecolor('black')
@@ -893,9 +888,4 @@ if 'video_file' in st.session_state:
                     mime="video/mp4",
                     use_container_width=True
                 )
-        st.markdown('</div>', unsafe_allow_html=True)patch.set_facecolor('black')
-                                    gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
-                                    ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
-                                    ax_bar = fig.add_subplot(gs[1])
-                                
-                                    fig.
+        st.markdown('</div>', unsafe_allow_html=True)
