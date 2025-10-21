@@ -286,8 +286,9 @@ with col_right:
 
 if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
     try:
-        status_text.text("🔍 Fetching fire data from NASA...")
-        progress_bar.progress(5)
+        if 'progress_bar' in locals() and 'status_text' in locals():
+            status_text.text("🔍 Fetching fire data from NASA...")
+            progress_bar.progress(5)
         response = requests.get(f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{map_key}/MODIS_SP/world/{day_range}/{data_date}", timeout=30)
         progress_bar.progress(10)
         df = pd.read_csv(StringIO(response.text))
@@ -523,14 +524,16 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             st.session_state['generate_clicked'] = False
             st.rerun()
         else:
-            progress_bar.progress(100)
-            status_text.empty()
-            progress_bar.empty()
+            if 'progress_bar' in locals():
+                progress_bar.progress(100)
+                status_text.empty()
+                progress_bar.empty()
             st.error("⚠️ No fires found.")
             st.session_state['generate_clicked'] = False
     except Exception as e:
-        progress_bar.progress(100)
-        status_text.empty()
-        progress_bar.empty()
+        if 'progress_bar' in locals():
+            progress_bar.progress(100)
+            status_text.empty()
+            progress_bar.empty()
         st.error(f"❌ Error: {str(e)}")
         st.session_state['generate_clicked'] = False
