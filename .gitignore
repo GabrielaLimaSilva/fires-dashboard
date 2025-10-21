@@ -1,0 +1,6 @@
+.streamlit/secrets.toml
+*.mp3
+*.mp4
+maps_png/
+__pycache__/
+.env
