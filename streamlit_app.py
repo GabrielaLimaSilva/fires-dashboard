@@ -14,6 +14,11 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from PIL import Image
 from datetime import datetime, timedelta
+from pydub.utils import which
+
+# 🔧 Corrige o caminho do ffmpeg e ffprobe no ambiente remoto (como Streamlit Cloud)
+AudioSegment.converter = which("ffmpeg")
+AudioSegment.ffprobe = which("ffprobe")
 
 # -------------------
 # Streamlit Configuration
