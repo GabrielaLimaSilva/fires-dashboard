@@ -667,7 +667,17 @@ with col_left:
                 )
 
 with col_right:
-    if 'video_file' in st.session_state and os.path.exists(st.session_state['video_file']):
+    if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
+        # Mostrar status de geração na área do vídeo
+        st.markdown("""
+            <div class="video-container">
+                <div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.8);">
+                    <h2 style="color: #ffd700; margin-bottom: 1rem;">⏳ Generating Your Experience...</h2>
+                    <p style="font-size: 14px;">This may take a few minutes. Please wait.</p>
+                </div>
+            </div>
+        """, unsafe_allow_html=True)
+    elif 'video_file' in st.session_state and os.path.exists(st.session_state['video_file']):
         st.markdown("### 🎬 Your Creation")
         st.video(st.session_state['video_file'])
     else:
@@ -684,64 +694,62 @@ with col_right:
 # Processing
 # -------------------
 if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
-    with st.spinner("⏳ Processing..."):
-        if not map_key:
+    if not map_key:
+        with col_right:
             st.error("❌ Please enter your FIRMS API key!")
-        else:
-            try:
-                url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{map_key}/MODIS_SP/world/{day_range}/{data_date}"
-                response = requests.get(url, timeout=30)
+    else:
+        try:
+            url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{map_key}/MODIS_SP/world/{day_range}/{data_date}"
+            response = requests.get(url, timeout=30)
 
-                if response.status_code != 200:
+            if response.status_code != 200:
+                with col_right:
                     st.error(f"❌ Error fetching data: {response.status_code}")
-                else:
-                    df = pd.read_csv(StringIO(response.text))
-                    df.columns = df.columns.str.strip().str.lower()
+            else:
+                df = pd.read_csv(StringIO(response.text))
+                df.columns = df.columns.str.strip().str.lower()
 
-                    lat_col = None
-                    lon_col = None
+                lat_col = None
+                lon_col = None
 
-                    for col in df.columns:
-                        if 'lat' in col:
-                            lat_col = col
-                        if 'lon' in col:
-                            lon_col = col
+                for col in df.columns:
+                    if 'lat' in col:
+                        lat_col = col
+                    if 'lon' in col:
+                        lon_col = col
 
-                    if lat_col is None or lon_col is None:
+                if lat_col is None or lon_col is None:
+                    with col_right:
                         st.error(f"❌ Columns not found. Available columns: {list(df.columns)}")
-                        st.stop()
+                    st.stop()
 
-                    df['dist_km'] = distance_km(latitude_center, longitude_center, df[lat_col], df[lon_col])
-                    df_local = df[df['dist_km'] <= radius_km].copy()
+                df['dist_km'] = distance_km(latitude_center, longitude_center, df[lat_col], df[lon_col])
+                df_local = df[df['dist_km'] <= radius_km].copy()
 
-                    if df_local.empty:
+                if df_local.empty:
+                    with col_right:
                         st.warning("⚠️ No fires found in this area and period.")
-                    else:
-                        fires_per_day = df_local.groupby('acq_date').size().reset_index(name='n_fires')
-                        total_fires = len(df_local)
-                        avg_fires_per_day = df_local.groupby('acq_date').size().mean()
-                        max_fires_day = fires_per_day['n_fires'].max()
+                                else:
+                    fires_per_day = df_local.groupby('acq_date').size().reset_index(name='n_fires')
+                    total_fires = len(df_local)
+                    avg_fires_per_day = df_local.groupby('acq_date').size().mean()
+                    max_fires_day = fires_per_day['n_fires'].max()
 
-                        st.session_state['stats_data'] = {
-                            'total': total_fires,
-                            'days': len(fires_per_day),
-                            'avg': avg_fires_per_day,
-                            'peak': max_fires_day
-                        }
+                    st.session_state['stats_data'] = {
+                        'total': total_fires,
+                        'days': len(fires_per_day),
+                        'avg': avg_fires_per_day,
+                        'peak': max_fires_day
+                    }
 
-                        with st.status("🎬 Generating...") as status:
-                            status.update(label="🎵 Creating soundtrack...", state="running")
+                    all_days = fires_per_day['acq_date'].tolist()
+                    n_days = len(fires_per_day)
+                    n_fade_frames = 10
 
-                            all_days = fires_per_day['acq_date'].tolist()
-                            n_days = len(fires_per_day)
-                            n_fade_frames = 10
-
-                            melody = compose_fire_symphony(fires_per_day, total_duration_sec)
-                            file_name = "fires_epic_sound.mp3"
-                            melody.export(file_name, format="mp3", bitrate="192k")
-                            st.session_state['mp3_file'] = file_name
-
-                            status.update(label="🗺️ Generating maps...", state="running")
+                    melody = compose_fire_symphony(fires_per_day, total_duration_sec)
+                    file_name = "fires_epic_sound.mp3"
+                    melody.export(file_name, format="mp3", bitrate="192k")
+                    st.session_state['mp3_file'] = file_name
 
                             lon_min = longitude_center - radius_km/100
                             lon_max = longitude_center + radius_km/100
@@ -749,114 +757,205 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                             lat_max = latitude_center + radius_km/100
                             images_files = []
                             
-                            intro_frames = 30
-                            
-                            for i in range(intro_frames):
-                                progress = (i + 1) / intro_frames
-                            
-                                fig = plt.figure(figsize=(20, 15), dpi=200)
-                                fig.patch.set_facecolor('black')
-                                gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
-                                ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
-                                ax_bar = fig.add_subplot(gs[1])
-                            
-                                fig.patch.set_facecolor('#000000')
-                                ax_map.set_facecolor('black')
-                                ax_bar.set_facecolor('black')
-                            
-                                ax_map.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
-                                ax_map.add_feature(cfeature.LAND, facecolor='none', edgecolor='gray', linewidth=0.8)
-                                ax_map.add_feature(cfeature.BORDERS, edgecolor='gray', linewidth=0.5)
-                                ax_map.add_feature(cfeature.COASTLINE, edgecolor='gray', linewidth=0.5)
-                                ax_map.set_xticks([])
-                                ax_map.set_yticks([])
-                            
-                                ax_map.plot(longitude_center, latitude_center, 'ro', markersize=15,
-                                            transform=ccrs.PlateCarree(), alpha=0.8)
-                            
-                                current_radius_km = radius_km * progress
-                                lat_deg_radius = current_radius_km / 111
-                                lon_deg_radius = current_radius_km / (111 * np.cos(np.radians(latitude_center)))
-                            
-                                theta = np.linspace(0, 2*np.pi, 100)
-                                lat_circle = latitude_center + lat_deg_radius * np.sin(theta)
-                                lon_circle = longitude_center + lon_deg_radius * np.cos(theta)
-                            
-                                ax_map.plot(lon_circle, lat_circle, 'r-', linewidth=2,
-                                            transform=ccrs.PlateCarree(), alpha=0.7)
-                            
-                                if progress > 0.7:
-                                    lat_end = latitude_center + lat_deg_radius * np.sin(np.pi/4)
-                                    lon_end = longitude_center + lon_deg_radius * np.cos(np.pi/4)
-                            
-                                    ax_map.plot([longitude_center, lon_end], [latitude_center, lat_end],
-                                                'y-', linewidth=3, transform=ccrs.PlateCarree(), alpha=0.8)
-                            
-                                    mid_lat = (latitude_center + lat_end)/2
-                                    mid_lon = (longitude_center + lon_end)/2
-                                    ax_map.text(mid_lon, mid_lat, f'{radius_km} km',
-                                                color='white', fontsize=16, fontweight='bold',
-                                                transform=ccrs.PlateCarree(), ha='center', va='center',
-                                                bbox=dict(boxstyle="round,pad=0.3", facecolor='red', alpha=0.7))
-                            
-                                ax_bar.set_facecolor('black')
-                                ax_bar.set_xlim(0, 1)
-                                ax_bar.set_ylim(0, 1)
-                                ax_bar.set_xticks([])
-                                ax_bar.set_yticks([])
-                                for spine in ax_bar.spines.values():
-                                    spine.set_visible(False)
-                                for spine in ax_map.spines.values():
-                                    spine.set_visible(False)
-                            
-                                png_file = f"maps_png/intro_{i}.png"
-                                fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0)
-                                plt.close(fig)
-                            
-                                img = Image.open(png_file).convert("RGB")
-                                final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
-                                img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
-                                offset = ((TARGET_WIDTH - img.width)//2, (TARGET_HEIGHT - img.height)//2)
-                                final_img.paste(img, offset)
-                                final_img.save(png_file, quality=95)
-                                images_files.append(png_file)
-                            
-                            for i, (day, n_fires) in enumerate(fires_per_day.values):
-                                df_day = df_local[df_local['acq_date'] == day]
-                                frp_norm = np.zeros(len(df_day))
-                                if 'frp' in df_day.columns and not df_day['frp'].isna().all():
-                                    frp_norm = (df_day['frp'] - df_day['frp'].min()) / (df_day['frp'].max() - df_day['frp'].min() + 1e-6)
-                            
-                                for k in range(n_fade_frames):
-                                    alpha = (k+1)/n_fade_frames
-                            
-                                    fig = plt.figure(figsize=(20, 15), dpi=200)
-                                    fig.patch.set_facecolor('black')
-                                    gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
-                                    ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
-                                    ax_bar = fig.add_subplot(gs[1])
-                            
-                                    fig.patch.set_facecolor('#000000')
-                                    ax_map.set_facecolor('black')
-                                    ax_bar.set_facecolor('black')
-                            
-                                    ax_map.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
-                                    ax_map.add_feature(cfeature.LAND, facecolor='none', edgecolor='gray', linewidth=0.8)
-                                    ax_map.add_feature(cfeature.BORDERS, edgecolor='gray', linewidth=0.5)
-                                    ax_map.add_feature(cfeature.COASTLINE, edgecolor='gray', linewidth=0.5)
-                                    ax_map.set_xticks([])
-                                    ax_map.set_yticks([])
-                            
-                                    scatter = ax_map.scatter(
-                                        df_day[lon_col],
-                                        df_day[lat_col],
-                                        c=frp_norm,
-                                        cmap='hot',
-                                        s=200 + 100 * np.sin(alpha * np.pi),
-                                        alpha=0.7 + 0.3*alpha,
-                                        linewidths=2,
-                                        edgecolors='yellow',
+                    intro_frames = 30
+                    
+                                        
+                    for i in range(intro_frames):
+                        progress = (i + 1) / intro_frames
+                    
+                        fig = plt.figure(figsize=(20, 15), dpi=200)
+                        fig.patch.set_facecolor('black')
+                        gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
+                        ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
+                        ax_bar = fig.add_subplot(gs[1])
+                    
+                        fig.patch.set_facecolor('#000000')
+                        ax_map.set_facecolor('black')
+                        ax_bar.set_facecolor('black')
+                    
+                        ax_map.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
+                        ax_map.add_feature(cfeature.LAND, facecolor='none', edgecolor='gray', linewidth=0.8)
+                        ax_map.add_feature(cfeature.BORDERS, edgecolor='gray', linewidth=0.5)
+                        ax_map.add_feature(cfeature.COASTLINE, edgecolor='gray', linewidth=0.5)
+                        ax_map.set_xticks([])
+                        ax_map.set_yticks([])
+                    
+                        ax_map.plot(longitude_center, latitude_center, 'ro', markersize=15,
+                                    transform=ccrs.PlateCarree(), alpha=0.8)
+                    
+                        current_radius_km = radius_km * progress
+                        lat_deg_radius = current_radius_km / 111
+                        lon_deg_radius = current_radius_km / (111 * np.cos(np.radians(latitude_center)))
+                    
+                        theta = np.linspace(0, 2*np.pi, 100)
+                        lat_circle = latitude_center + lat_deg_radius * np.sin(theta)
+                        lon_circle = longitude_center + lon_deg_radius * np.cos(theta)
+                    
+                        ax_map.plot(lon_circle, lat_circle, 'r-', linewidth=2,
+                                    transform=ccrs.PlateCarree(), alpha=0.7)
+                    
+                        if progress > 0.7:
+                            lat_end = latitude_center + lat_deg_radius * np.sin(np.pi/4)
+                            lon_end = longitude_center + lon_deg_radius * np.cos(np.pi/4)
+                    
+                            ax_map.plot([longitude_center, lon_end], [latitude_center, lat_end],
+                                        'y-', linewidth=3, transform=ccrs.PlateCarree(), alpha=0.8)
+                    
+                            mid_lat = (latitude_center + lat_end)/2
+                            mid_lon = (longitude_center + lon_end)/2
+                            ax_map.text(mid_lon, mid_lat, f'{radius_km} km',
+                                        color='white', fontsize=16, fontweight='bold',
+                                        transform=ccrs.PlateCarree(), ha='center', va='center',
+                                        bbox=dict(boxstyle="round,pad=0.3", facecolor='red', alpha=0.7))
+                    
+                        ax_bar.set_facecolor('black')
+                        ax_bar.set_xlim(0, 1)
+                        ax_bar.set_ylim(0, 1)
+                        ax_bar.set_xticks([])
+                        ax_bar.set_yticks([])
+                        for spine in ax_bar.spines.values():
+                            spine.set_visible(False)
+                        for spine in ax_map.spines.values():
+                            spine.set_visible(False)
+                    
+                        png_file = f"maps_png/intro_{i}.png"
+                        fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0)
+                        plt.close(fig)
+                    
+                        img = Image.open(png_file).convert("RGB")
+                        final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
+                        img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
+                        offset = ((TARGET_WIDTH - img.width)//2, (TARGET_HEIGHT - img.height)//2)
+                        final_img.paste(img, offset)
+                        final_img.save(png_file, quality=95)
+                                                images_files.append(png_file)
+                    
+                    for i, (day, n_fires) in enumerate(fires_per_day.values):
+                        df_day = df_local[df_local['acq_date'] == day]
+                        frp_norm = np.zeros(len(df_day))
+                        if 'frp' in df_day.columns and not df_day['frp'].isna().all():
+                            frp_norm = (df_day['frp'] - df_day['frp'].min()) / (df_day['frp'].max() - df_day['frp'].min() + 1e-6)
+                    
+                        for k in range(n_fade_frames):
+                            alpha = (k+1)/n_fade_frames
+                    
+                            fig = plt.figure(figsize=(20, 15), dpi=200)
+                            fig.patch.set_facecolor('black')
+                            gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
+                            ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
+                            ax_bar = fig.add_subplot(gs[1])
+                    
+                            fig.patch.set_facecolor('#000000')
+                            ax_map.set_facecolor('black')
+                            ax_bar.set_facecolor('black')
+                    
+                            ax_map.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
+                            ax_map.add_feature(cfeature.LAND, facecolor='none', edgecolor='gray', linewidth=0.8)
+                            ax_map.add_feature(cfeature.BORDERS, edgecolor='gray', linewidth=0.5)
+                            ax_map.add_feature(cfeature.COASTLINE, edgecolor='gray', linewidth=0.5)
+                            ax_map.set_xticks([])
+                            ax_map.set_yticks([])
+                    
+                            scatter = ax_map.scatter(
+                                df_day[lon_col],
+                                df_day[lat_col],
+                                c=frp_norm,
+                                cmap='hot',
+                                s=200 + 100 * np.sin(alpha * np.pi),
+                                alpha=0.7 + 0.3*alpha,
+                                linewidths=2,
+                                edgecolors='yellow',
+                                transform=ccrs.PlateCarree(),
+                                marker='o'
+                            )
+                    
+                            if len(df_day) > 0:
+                                high_intensity = df_day[df_day['frp'] > df_day['frp'].quantile(0.7)] if 'frp' in df_day.columns else df_day
+                                if len(high_intensity) > 0:
+                                    ax_map.scatter(
+                                        high_intensity[lon_col],
+                                        high_intensity[lat_col],
+                                        c='white',
+                                        s=300,
+                                        alpha=0.3*alpha,
+                                        linewidths=1,
+                                        edgecolors='orange',
                                         transform=ccrs.PlateCarree(),
+                                        marker='*'
+                                    )
+                    
+                            bar_heights = [
+                                fires_per_day.loc[fires_per_day['acq_date']==d,'n_fires'].values[0]
+                                if d<=day else 0
+                                for d in all_days
+                            ]
+                            colors = ['orangered' if d<=day else 'gray' for d in all_days]
+                            bars = ax_bar.bar(all_days, bar_heights, color=colors, alpha=0.9, edgecolor='white', linewidth=0.5)
+                            
+                            for bar, height in zip(bars, bar_heights):
+                                if height > 0:
+                                    bar.set_linewidth(1.5)
+                                    bar.set_edgecolor('#ffd700')
+                            
+                            ax_bar.tick_params(colors='white', labelsize=12)
+                            ax_bar.set_ylabel('Number of Fires', color='white', fontsize=14, fontweight='bold')
+                            ax_bar.set_xlabel('Date', color='white', fontsize=14, fontweight='bold')
+                            ax_bar.set_ylim(0, fires_per_day['n_fires'].max()*1.2)
+                            ax_bar.grid(axis='y', alpha=0.2, linestyle='--', color='gray')
+                            ax_bar.set_facecolor('#0a0a0a')
+                            plt.setp(ax_bar.get_xticklabels(), rotation=45, ha='right')
+                            for spine in ax_bar.spines.values():
+                                spine.set_color('#ff8c00')
+                                spine.set_linewidth(1.5)
+                            for spine in ax_map.spines.values():
+                                spine.set_visible(False)
+                            ax_map.tick_params(left=False, right=False, top=False, bottom=False)
+                    
+                            png_file = f"maps_png/map_{i}_{k}.png"
+                            fig.savefig(png_file, facecolor='#000000', bbox_inches='tight', pad_inches=0)
+                            plt.close(fig)
+                    
+                            img = Image.open(png_file).convert("RGB")
+                            final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
+                            img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
+                            offset = ((TARGET_WIDTH - img.width)//2, (TARGET_HEIGHT - img.height)//2)
+                            final_img.paste(img, offset)
+                            final_img.save(png_file)
+                            images_files.append(png_file)
+
+                    intro_duration = 4.0
+                    fires_duration = total_duration_sec
+
+                    intro_frame_duration = intro_duration / intro_frames
+                    fires_frame_count = len(images_files) - intro_frames
+                    fires_frame_duration = fires_duration / fires_frame_count if fires_frame_count > 0 else 0.1
+
+                    frame_durations = [intro_frame_duration] * intro_frames + [fires_frame_duration] * fires_frame_count
+
+                    clip = ImageSequenceClip(images_files, durations=frame_durations)
+                    clip = clip.on_color(size=(1920,1080), color=(0,0,0))
+                    
+                    audio_clip = AudioFileClip(file_name)
+                    
+                    def make_frame(t):
+                        return [0, 0]
+                    
+                    silent_audio = AudioClip(make_frame, duration=intro_duration, fps=44100)
+                    
+                    full_audio = concatenate_audioclips([silent_audio, audio_clip])
+                    clip = clip.set_audio(full_audio)
+                    clip.fps = 24
+
+                    mp4_file = "fires_cinematic.mp4"
+                    clip.write_videofile(mp4_file, codec="libx264", audio_codec="aac", verbose=False, logger=None)
+                    st.session_state['video_file'] = mp4_file
+                    st.session_state['generate_clicked'] = False
+
+                    st.rerun()
+
+        except Exception as e:
+            with col_right:
+                st.error(f"❌ Error: {str(e)}")Carree(),
                                         marker='o'
                                     )
                             
