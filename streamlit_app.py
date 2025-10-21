@@ -193,51 +193,134 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             melody.export("fires_sound.mp3", format="mp3", bitrate="192k")
             st.session_state['mp3_file'] = "fires_sound.mp3"
             
-            # Generate maps
+            # Generate maps with proper settings
             lon_min = longitude_center - radius_km/100
             lon_max = longitude_center + radius_km/100
             lat_min = latitude_center - radius_km/100
             lat_max = latitude_center + radius_km/100
             images_files = []
             all_days = fires_per_day['acq_date'].tolist()
+            n_days = len(fires_per_day)
             
-            # Intro frames
-            for i in range(30):
+            # Intro frames (30 frames = 4 seconds at slower pace)
+            intro_frames = 30
+            for i in range(intro_frames):
+                progress = (i + 1) / intro_frames
                 fig = plt.figure(figsize=(19.2, 10.8), dpi=100)
                 fig.patch.set_facecolor('black')
                 ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
+                ax.set_facecolor('black')
                 ax.set_extent([lon_min, lon_max, lat_min, lat_max])
                 ax.add_feature(cfeature.LAND, facecolor='none', edgecolor='gray', linewidth=0.8)
-                ax.plot(longitude_center, latitude_center, 'ro', markersize=10, transform=ccrs.PlateCarree())
+                ax.add_feature(cfeature.BORDERS, edgecolor='gray', linewidth=0.5)
+                ax.add_feature(cfeature.COASTLINE, edgecolor='gray', linewidth=0.5)
+                ax.set_xticks([])
+                ax.set_yticks([])
+                
+                # Growing circle
+                ax.plot(longitude_center, latitude_center, 'ro', markersize=15, transform=ccrs.PlateCarree(), alpha=0.8)
+                current_radius_km = radius_km * progress
+                lat_deg_radius = current_radius_km / 111
+                lon_deg_radius = current_radius_km / (111 * np.cos(np.radians(latitude_center)))
+                theta = np.linspace(0, 2*np.pi, 100)
+                lat_circle = latitude_center + lat_deg_radius * np.sin(theta)
+                lon_circle = longitude_center + lon_deg_radius * np.cos(theta)
+                ax.plot(lon_circle, lat_circle, 'r-', linewidth=2, transform=ccrs.PlateCarree(), alpha=0.7)
+                
                 png_file = f"maps_png/intro_{i}.png"
-                fig.savefig(png_file, facecolor='black', bbox_inches='tight', pad_inches=0)
+                fig.savefig(png_file, facecolor='black', dpi=100, bbox_inches='tight', pad_inches=0)
                 plt.close(fig)
+                
+                # Force RGB and exact dimensions
+                img = Image.open(png_file).convert("RGB")
+                final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
+                img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
+                offset = ((TARGET_WIDTH - img.width)//2, (TARGET_HEIGHT - img.height)//2)
+                final_img.paste(img, offset)
+                final_img.save(png_file, quality=95)
                 images_files.append(png_file)
             
-            # Fire frames
-            for day, n_fires in fires_per_day.values:
+            # Fire frames - 10 frames per day for smooth animation
+            n_frames_per_day = 10
+            for idx, (day, n_fires) in enumerate(fires_per_day.values):
                 df_day = df_local[df_local['acq_date'] == day]
-                fig = plt.figure(figsize=(19.2, 10.8), dpi=100)
-                fig.patch.set_facecolor('black')
-                ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
-                ax.set_extent([lon_min, lon_max, lat_min, lat_max])
-                ax.add_feature(cfeature.LAND, facecolor='none', edgecolor='gray', linewidth=0.8)
-                ax.scatter(df_day[lon_col], df_day[lat_col], c='red', s=100, alpha=0.7, transform=ccrs.PlateCarree())
-                png_file = f"maps_png/day_{day}.png"
-                fig.savefig(png_file, facecolor='black', bbox_inches='tight', pad_inches=0)
-                plt.close(fig)
-                images_files.append(png_file)
+                
+                for frame in range(n_frames_per_day):
+                    alpha = (frame + 1) / n_frames_per_day
+                    
+                    fig = plt.figure(figsize=(19.2, 10.8), dpi=100)
+                    fig.patch.set_facecolor('black')
+                    ax = fig.add_subplot(111, projection=ccrs.PlateCarree())
+                    ax.set_facecolor('black')
+                    ax.set_extent([lon_min, lon_max, lat_min, lat_max])
+                    ax.add_feature(cfeature.LAND, facecolor='none', edgecolor='gray', linewidth=0.8)
+                    ax.add_feature(cfeature.BORDERS, edgecolor='gray', linewidth=0.5)
+                    ax.add_feature(cfeature.COASTLINE, edgecolor='gray', linewidth=0.5)
+                    ax.set_xticks([])
+                    ax.set_yticks([])
+                    
+                    # Scatter fire points with animation
+                    if len(df_day) > 0:
+                        ax.scatter(
+                            df_day[lon_col], 
+                            df_day[lat_col], 
+                            c='red', 
+                            s=200 + 100 * np.sin(alpha * np.pi), 
+                            alpha=0.7 + 0.3 * alpha,
+                            linewidths=2,
+                            edgecolors='yellow',
+                            transform=ccrs.PlateCarree(),
+                            marker='o'
+                        )
+                    
+                    png_file = f"maps_png/day_{idx}_frame_{frame}.png"
+                    fig.savefig(png_file, facecolor='black', dpi=100, bbox_inches='tight', pad_inches=0)
+                    plt.close(fig)
+                    
+                    # Force RGB and exact dimensions
+                    img = Image.open(png_file).convert("RGB")
+                    final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
+                    img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
+                    offset = ((TARGET_WIDTH - img.width)//2, (TARGET_HEIGHT - img.height)//2)
+                    final_img.paste(img, offset)
+                    final_img.save(png_file, quality=95)
+                    images_files.append(png_file)
             
-            # Create video
-            frame_duration = total_duration_sec / len(images_files)
-            clip = ImageSequenceClip(images_files, fps=1/frame_duration)
+            # Create video with proper timing
+            intro_duration = 4.0
+            fires_duration = total_duration_sec
+            
+            intro_frame_duration = intro_duration / intro_frames
+            fires_frame_count = len(images_files) - intro_frames
+            fires_frame_duration = fires_duration / fires_frame_count if fires_frame_count > 0 else 0.1
+            
+            frame_durations = [intro_frame_duration] * intro_frames + [fires_frame_duration] * fires_frame_count
+            
+            # Create clip
+            clip = ImageSequenceClip(images_files, durations=frame_durations)
+            clip = clip.on_color(size=(TARGET_WIDTH, TARGET_HEIGHT), color=(0,0,0))
+            
+            # Add audio (silent intro + music)
             audio_clip = AudioFileClip("fires_sound.mp3")
-            clip = clip.set_audio(audio_clip)
-            clip.write_videofile("fires_video.mp4", codec="libx264", audio_codec="aac", verbose=False, logger=None)
+            
+            def make_frame(t):
+                return [0, 0]
+            
+            silent_audio = AudioClip(make_frame, duration=intro_duration, fps=44100)
+            full_audio = concatenate_audioclips([silent_audio, audio_clip])
+            clip = clip.set_audio(full_audio)
+            clip.fps = 24
+            
+            # Write video
+            clip.write_videofile("fires_video.mp4", codec="libx264", audio_codec="aac", bitrate="5000k", fps=24, verbose=False, logger=None)
             
             st.session_state['video_file'] = "fires_video.mp4"
             st.session_state['generate_clicked'] = False
             st.rerun()
+        else:
+            st.error("⚠️ No fires found in this area.")
+            st.session_state['generate_clicked'] = False
+            
     except Exception as e:
         st.error(f"❌ Error: {str(e)}")
         st.session_state['generate_clicked'] = False
