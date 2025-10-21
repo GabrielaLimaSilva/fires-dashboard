@@ -4,7 +4,7 @@ numpy
 requests
 matplotlib
 pydub
-moviepy
+moviepy==1.0.3
 cartopy
 pillow
 audioop-lts; python_version>='3.13'
