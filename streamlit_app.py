@@ -225,6 +225,11 @@ TARGET_HEIGHT = 1080
 
 st.markdown('<div class="main-header"><h1>🔥 Hear the Fire</h1><p>Transform fire data into an immersive audiovisual experience</p></div>', unsafe_allow_html=True)
 
+# BARRA DE PROGRESSO NO TOPO
+if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
+    progress_bar = st.progress(0)
+    status_text = st.empty()
+
 st.sidebar.markdown("### ⚙️ Settings")
 map_key = "a4abee84e580a96ff5ba9bd54cd11a8d"
 
@@ -280,9 +285,6 @@ with col_right:
         st.markdown('<div class="video-container"><div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.5);"><h2 style="color: #ffd700;">🎬 Your Video Will Appear Here</h2><p>Configure parameters and click GENERATE.</p></div></div>', unsafe_allow_html=True)
 
 if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
-    progress_bar = st.progress(0)
-    status_text = st.empty()
-    
     try:
         status_text.text("🔍 Fetching fire data from NASA...")
         progress_bar.progress(5)
