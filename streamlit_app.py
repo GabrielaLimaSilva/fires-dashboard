@@ -226,7 +226,8 @@ def epic_chord(frequencies, duration_ms, amplitude=0.5):
         delay = int(duration_ms * 0.5 * (i+1))
         chord = chord.overlay(chord - (10 + i*5), position=delay)
     return chord
-
+TARGET_WIDTH = 1920
+TARGET_HEIGHT = 1080
 # -------------------
 # Header
 # -------------------
