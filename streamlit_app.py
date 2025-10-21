@@ -1,4 +1,3 @@
-traduz esse codigo para o ingles
 filename = 'Hear the Fire'
 import streamlit as st
 import pandas as pd
