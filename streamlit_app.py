@@ -437,136 +437,131 @@ with col_right:
                                 lat_max = latitude_center + radius_km/100
                                 images_files = []
 
-                                # INTRODUÇÃO: Círculo crescendo e linha com raio
-                               # INTRODUÇÃO: Círculo crescendo e linha com raio
+                                TARGET_WIDTH = 1920
+                                TARGET_HEIGHT = 1080
+                                
+                                # --- INTRODUÇÃO ---
                                 intro_frames = 30
+                                images_files = []
+                                
                                 for i in range(intro_frames):
                                     progress = (i + 1) / intro_frames
-
+                                
                                     fig = plt.figure(figsize=(20, 15), dpi=200)
                                     fig.patch.set_facecolor('black')
                                     gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
                                     ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
                                     ax_bar = fig.add_subplot(gs[1])
-
+                                
                                     fig.patch.set_facecolor('#000000')
                                     ax_map.set_facecolor('black')
                                     ax_bar.set_facecolor('black')
-
+                                
                                     ax_map.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
                                     ax_map.add_feature(cfeature.LAND, facecolor='none', edgecolor='gray', linewidth=0.8)
                                     ax_map.add_feature(cfeature.BORDERS, edgecolor='gray', linewidth=0.5)
                                     ax_map.add_feature(cfeature.COASTLINE, edgecolor='gray', linewidth=0.5)
                                     ax_map.set_xticks([])
                                     ax_map.set_yticks([])
-
-                                    # Ponto central
+                                
                                     ax_map.plot(longitude_center, latitude_center, 'ro', markersize=15,
-                                              transform=ccrs.PlateCarree(), alpha=0.8)
-
+                                                transform=ccrs.PlateCarree(), alpha=0.8)
+                                
                                     # Círculo crescendo
                                     current_radius_km = radius_km * progress
                                     lat_deg_radius = current_radius_km / 111
                                     lon_deg_radius = current_radius_km / (111 * np.cos(np.radians(latitude_center)))
-
+                                
                                     theta = np.linspace(0, 2*np.pi, 100)
                                     lat_circle = latitude_center + lat_deg_radius * np.sin(theta)
                                     lon_circle = longitude_center + lon_deg_radius * np.cos(theta)
-
+                                
                                     ax_map.plot(lon_circle, lat_circle, 'r-', linewidth=2,
-                                              transform=ccrs.PlateCarree(), alpha=0.7)
-
-                                    # Linha do centro até a borda (apenas nos últimos frames)
+                                                transform=ccrs.PlateCarree(), alpha=0.7)
+                                
+                                    # Linha do centro até borda (últimos frames)
                                     if progress > 0.7:
-                                        # Linha em ângulo de 45 graus
                                         lat_end = latitude_center + lat_deg_radius * np.sin(np.pi/4)
                                         lon_end = longitude_center + lon_deg_radius * np.cos(np.pi/4)
-
+                                
                                         ax_map.plot([longitude_center, lon_end], [latitude_center, lat_end],
-                                                  'y-', linewidth=3, transform=ccrs.PlateCarree(), alpha=0.8)
-
-                                        # Texto do raio
-                                        mid_lat = (latitude_center + lat_end) / 2
-                                        mid_lon = (longitude_center + lon_end) / 2
+                                                    'y-', linewidth=3, transform=ccrs.PlateCarree(), alpha=0.8)
+                                
+                                        mid_lat = (latitude_center + lat_end)/2
+                                        mid_lon = (longitude_center + lon_end)/2
                                         ax_map.text(mid_lon, mid_lat, f'{radius_km} km',
-                                                  color='white', fontsize=16, fontweight='bold',
-                                                  transform=ccrs.PlateCarree(), ha='center', va='center',
-                                                  bbox=dict(boxstyle="round,pad=0.3", facecolor='red', alpha=0.7))
-
-                                    # Subplot inferior VAZIO - mantém o mesmo layout do gráfico principal
+                                                    color='white', fontsize=16, fontweight='bold',
+                                                    transform=ccrs.PlateCarree(), ha='center', va='center',
+                                                    bbox=dict(boxstyle="round,pad=0.3", facecolor='red', alpha=0.7))
+                                
+                                    # Subplot inferior vazio
                                     ax_bar.set_facecolor('black')
                                     ax_bar.set_xlim(0, 1)
                                     ax_bar.set_ylim(0, 1)
                                     ax_bar.set_xticks([])
                                     ax_bar.set_yticks([])
-
-                                    # Remover bordas do subplot inferior
                                     for spine in ax_bar.spines.values():
                                         spine.set_visible(False)
-
-                                    # Remover bordas do subplot do mapa
                                     for spine in ax_map.spines.values():
                                         spine.set_visible(False)
-
-                                    ax_map.tick_params(left=False, right=False, top=False, bottom=False)
-
+                                
                                     png_file = f"maps_png/intro_{i}.png"
                                     fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0)
                                     plt.close(fig)
-
-                                    # Abrir e forçar tamanho exato
-                                    img = Image.open(png_file)
-                                    # Criar nova imagem com fundo preto e tamanho exato
-                                    final_img = Image.new('RGB', (TARGET_WIDTH, TARGET_HEIGHT), (0, 0, 0))
-                                    # Redimensionar mantendo proporção
+                                
+                                    # --- FORÇAR RGB e tamanho exato 1920x1080 ---
+                                    img = Image.open(png_file).convert("RGB")
+                                    final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
                                     img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
-                                    # Centralizar na imagem final
-                                    offset = ((TARGET_WIDTH - img.width) // 2, (TARGET_HEIGHT - img.height) // 2)
+                                    offset = ((TARGET_WIDTH - img.width)//2, (TARGET_HEIGHT - img.height)//2)
                                     final_img.paste(img, offset)
                                     final_img.save(png_file, quality=95)
                                     images_files.append(png_file)
-                                # SEQUÊNCIA PRINCIPAL: Focos de incêndio
-                                for i in range(len(focos_per_day)):
-                                    df_day = df_local[df_local['acq_date'] == focos_per_day['acq_date'].iloc[i]]
+                                
+                                # --- LOOP PRINCIPAL: FOCOS DE INCÊNDIO ---
+                                n_fade_frames = 10
+                                
+                                for i, (day, n_fires) in enumerate(focos_per_day.values):
+                                    df_day = df_local[df_local['acq_date'] == day]
                                     frp_norm = np.zeros(len(df_day))
                                     if 'frp' in df_day.columns and not df_day['frp'].isna().all():
                                         frp_norm = (df_day['frp'] - df_day['frp'].min()) / (df_day['frp'].max() - df_day['frp'].min() + 1e-6)
-
+                                
                                     for k in range(n_fade_frames):
                                         alpha = (k+1)/n_fade_frames
-
+                                
                                         fig = plt.figure(figsize=(20, 15), dpi=200)
                                         fig.patch.set_facecolor('black')
                                         gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
                                         ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
                                         ax_bar = fig.add_subplot(gs[1])
-
+                                
                                         fig.patch.set_facecolor('#000000')
                                         ax_map.set_facecolor('black')
                                         ax_bar.set_facecolor('black')
-
+                                
                                         ax_map.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
                                         ax_map.add_feature(cfeature.LAND, facecolor='none', edgecolor='gray', linewidth=0.8)
                                         ax_map.add_feature(cfeature.BORDERS, edgecolor='gray', linewidth=0.5)
                                         ax_map.add_feature(cfeature.COASTLINE, edgecolor='gray', linewidth=0.5)
                                         ax_map.set_xticks([])
                                         ax_map.set_yticks([])
-
-                                        # Focos com efeitos expressivos
+                                
+                                        # Focos
                                         scatter = ax_map.scatter(
                                             df_day[lon_col],
                                             df_day[lat_col],
                                             c=frp_norm,
                                             cmap='hot',
-                                            s=200 + 100 * np.sin(alpha * np.pi),  # Tamanho pulsante
-                                            alpha=0.7 + 0.3 * alpha,
+                                            s=200 + 100 * np.sin(alpha * np.pi),
+                                            alpha=0.7 + 0.3*alpha,
                                             linewidths=2,
                                             edgecolors='yellow',
                                             transform=ccrs.PlateCarree(),
                                             marker='o'
                                         )
-
-                                        # Adicionar alguns efeitos de brilho para focos mais intensos
+                                
+                                        # Efeitos de brilho
                                         if len(df_day) > 0:
                                             high_intensity = df_day[df_day['frp'] > df_day['frp'].quantile(0.7)] if 'frp' in df_day.columns else df_day
                                             if len(high_intensity) > 0:
@@ -575,21 +570,20 @@ with col_right:
                                                     high_intensity[lat_col],
                                                     c='white',
                                                     s=300,
-                                                    alpha=0.3 * alpha,
+                                                    alpha=0.3*alpha,
                                                     linewidths=1,
                                                     edgecolors='orange',
                                                     transform=ccrs.PlateCarree(),
                                                     marker='*'
                                                 )
-
-                                        # Barra de progresso temporal
+                                
+                                        # Barra temporal
                                         bar_heights = [
                                             focos_per_day.loc[focos_per_day['acq_date']==d,'n_fires'].values[0]
-                                            if d<=focos_per_day['acq_date'].iloc[i] else 0
+                                            if d<=day else 0
                                             for d in all_days
                                         ]
-                                        colors = ['orangered' if d<=focos_per_day['acq_date'].iloc[i] else 'gray'
-                                                 for d in all_days]
+                                        colors = ['orangered' if d<=day else 'gray' for d in all_days]
                                         ax_bar.bar(all_days, bar_heights, color=colors, alpha=0.8)
                                         ax_bar.tick_params(colors='white', labelsize=14)
                                         ax_bar.set_ylabel('Número de Incêndios', color='white', fontsize=16)
@@ -601,15 +595,20 @@ with col_right:
                                         for spine in ax_map.spines.values():
                                             spine.set_visible(False)
                                         ax_map.tick_params(left=False, right=False, top=False, bottom=False)
-
+                                
                                         png_file = f"maps_png/map_{i}_{k}.png"
                                         fig.savefig(png_file, facecolor='#000000', bbox_inches='tight', pad_inches=0)
                                         plt.close(fig)
-
-                                        img = Image.open(png_file)
-                                        img = img.resize((1920, 1080))
-                                        img.save(png_file)
+                                
+                                        # --- FORÇAR RGB e tamanho exato 1920x1080 ---
+                                        img = Image.open(png_file).convert("RGB")
+                                        final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
+                                        img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
+                                        offset = ((TARGET_WIDTH - img.width)//2, (TARGET_HEIGHT - img.height)//2)
+                                        final_img.paste(img, offset)
+                                        final_img.save(png_file)
                                         images_files.append(png_file)
+
 
                                 status.update(label="🎬 Compilando vídeo...", state="running")
 
