@@ -16,7 +16,7 @@ from PIL import Image
 from datetime import datetime, timedelta
 from pydub.utils import which
 
-# 🔧 Corrige o caminho do ffmpeg e ffprobe no ambiente remoto (como Streamlit Cloud)
+# 🔧 Fix ffmpeg and ffprobe path in remote environment (like Streamlit Cloud)
 AudioSegment.converter = which("ffmpeg")
 AudioSegment.ffprobe = which("ffprobe")
 
@@ -29,7 +29,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS para design com tema de incêndios
+# Custom CSS for fire-themed design
 st.markdown("""
     <style>
         :root {
@@ -226,8 +226,10 @@ def epic_chord(frequencies, duration_ms, amplitude=0.5):
         delay = int(duration_ms * 0.5 * (i+1))
         chord = chord.overlay(chord - (10 + i*5), position=delay)
     return chord
+
 TARGET_WIDTH = 1920
 TARGET_HEIGHT = 1080
+
 # -------------------
 # Header
 # -------------------
@@ -235,7 +237,7 @@ st.markdown("""
     <div class="main-header">
         <h1 style="margin: 0; color: white; font-size: 36px;">🔥 Hear the Fire</h1>
         <p style="margin: 8px 0 0 0; color: rgba(0,0,0,0.8); font-size: 16px;">
-            Transforme dados de incêndios em uma experiência audiovisual imersiva
+            Transform fire data into an immersive audiovisual experience
         </p>
     </div>
 """, unsafe_allow_html=True)
@@ -243,31 +245,31 @@ st.markdown("""
 # -------------------
 # Sidebar Configuration
 # -------------------
-st.sidebar.markdown("### ⚙️ Configurações")
+st.sidebar.markdown("### ⚙️ Settings")
 st.sidebar.markdown("---")
 
-# API Key fixa (não mostrada no dashboard)
+# Fixed API Key (not shown on dashboard)
 map_key = "aa8b33fef53700c18bce394211eeb2e7"
 
-st.sidebar.markdown('<div class="sidebar-section"><strong>📍 Localização</strong></div>', unsafe_allow_html=True)
+st.sidebar.markdown('<div class="sidebar-section"><strong>📍 Location</strong></div>', unsafe_allow_html=True)
 col1, col2 = st.sidebar.columns(2)
 with col1:
     latitude_center = st.number_input("Latitude", value=-19.0, step=0.1)
 with col2:
     longitude_center = st.number_input("Longitude", value=-59.4, step=0.1)
 
-radius_km = st.sidebar.slider("Raio (km)", min_value=50, max_value=1000, value=150, step=50)
+radius_km = st.sidebar.slider("Radius (km)", min_value=50, max_value=1000, value=150, step=50)
 
-st.sidebar.markdown('<div class="sidebar-section"><strong>📅 Dados</strong></div>', unsafe_allow_html=True)
+st.sidebar.markdown('<div class="sidebar-section"><strong>📅 Data</strong></div>', unsafe_allow_html=True)
 col1, col2 = st.sidebar.columns(2)
 with col1:
-    data_date = st.date_input("Data inicial", value=datetime(2019, 8, 14))
+    data_date = st.date_input("Start date", value=datetime(2019, 8, 14))
     data_date = data_date.strftime("%Y-%m-%d")
 with col2:
-    day_range = st.number_input("Dias a recuperar", value=7, min_value=1, max_value=30)
+    day_range = st.number_input("Days to retrieve", value=7, min_value=1, max_value=30)
 
-st.sidebar.markdown('<div class="sidebar-section"><strong>🎵 Áudio</strong></div>', unsafe_allow_html=True)
-total_duration_sec = st.sidebar.slider("Duração total (seg)", min_value=5, max_value=60, value=14, step=1)
+st.sidebar.markdown('<div class="sidebar-section"><strong>🎵 Audio</strong></div>', unsafe_allow_html=True)
+total_duration_sec = st.sidebar.slider("Total duration (sec)", min_value=5, max_value=60, value=14, step=1)
 
 st.sidebar.markdown("---")
 os.makedirs("maps_png", exist_ok=True)
@@ -279,61 +281,61 @@ col_left, col_right = st.columns([1, 1], gap="medium")
 
 # LEFT SIDE - Controls & Stats
 with col_left:
-    st.markdown("### 📊 Resumo de Parâmetros")
+    st.markdown("### 📊 Parameter Summary")
 
     st.markdown(f"""
         <div class="stat-card">
-            <div class="metric-label">📍 Localização</div>
+            <div class="metric-label">📍 Location</div>
             <div class="metric-value" style="font-size: 18px;">{latitude_center:.2f}°, {longitude_center:.2f}°</div>
         </div>
     """, unsafe_allow_html=True)
 
     st.markdown(f"""
         <div class="stat-card">
-            <div class="metric-label">🌍 Raio de Busca</div>
+            <div class="metric-label">🌍 Search Radius</div>
             <div class="metric-value">{radius_km} km</div>
         </div>
     """, unsafe_allow_html=True)
 
     st.markdown(f"""
         <div class="stat-card">
-            <div class="metric-label">📅 Período</div>
-            <div class="metric-value">{day_range} dias</div>
+            <div class="metric-label">📅 Period</div>
+            <div class="metric-value">{day_range} days</div>
         </div>
     """, unsafe_allow_html=True)
 
     st.markdown(f"""
         <div class="stat-card">
-            <div class="metric-label">🎵 Duração</div>
-            <div class="metric-value">{total_duration_sec} seg</div>
+            <div class="metric-label">🎵 Duration</div>
+            <div class="metric-value">{total_duration_sec} sec</div>
         </div>
     """, unsafe_allow_html=True)
 
     st.markdown("---")
 
-    if st.button("🔥 GERAR VÍDEO + MÚSICA", use_container_width=True, key="generate_btn"):
+    if st.button("🔥 GENERATE VIDEO + MUSIC", use_container_width=True, key="generate_btn"):
         st.session_state['generate_clicked'] = True
 
 # RIGHT SIDE - Video & Results
 with col_right:
     if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
-        with st.spinner("⏳ Processando dados... Esta operação pode levar alguns minutos"):
+        with st.spinner("⏳ Processing data... This operation may take a few minutes"):
             if not map_key:
-                st.error("❌ Por favor, insira sua chave de API FIRMS!")
+                st.error("❌ Please enter your FIRMS API key!")
             else:
                 try:
                     url = f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{map_key}/MODIS_SP/world/{day_range}/{data_date}"
                     response = requests.get(url, timeout=30)
 
                     if response.status_code != 200:
-                        st.error(f"❌ Erro ao buscar dados: {response.status_code}")
+                        st.error(f"❌ Error fetching data: {response.status_code}")
                     else:
                         df = pd.read_csv(StringIO(response.text))
 
-                        # Normalizar nomes de coluna
+                        # Normalize column names
                         df.columns = df.columns.str.strip().str.lower()
 
-                        # Verificar quais colunas de latitude/longitude existem
+                        # Check which latitude/longitude columns exist
                         lat_col = None
                         lon_col = None
 
@@ -344,73 +346,73 @@ with col_right:
                                 lon_col = col
 
                         if lat_col is None or lon_col is None:
-                            st.error(f"❌ Colunas não encontradas. Colunas disponíveis: {list(df.columns)}")
+                            st.error(f"❌ Columns not found. Available columns: {list(df.columns)}")
                             st.stop()
 
                         df['dist_km'] = distance_km(latitude_center, longitude_center, df[lat_col], df[lon_col])
                         df_local = df[df['dist_km'] <= radius_km].copy()
 
                         if df_local.empty:
-                            st.warning("⚠️ Nenhum incêndio encontrado nesta área e período.")
+                            st.warning("⚠️ No fires found in this area and period.")
                         else:
-                            # Estatísticas
-                            focos_per_day = df_local.groupby('acq_date').size().reset_index(name='n_fires')
+                            # Statistics
+                            fires_per_day = df_local.groupby('acq_date').size().reset_index(name='n_fires')
                             total_fires = len(df_local)
                             avg_fires_per_day = df_local.groupby('acq_date').size().mean()
-                            max_fires_day = focos_per_day['n_fires'].max()
+                            max_fires_day = fires_per_day['n_fires'].max()
 
-                            # Display Stats na coluna esquerda - movido para cima
+                            # Display Stats in left column
                             with col_left:
-                                st.markdown("### 📈 Análise de Dados")
+                                st.markdown("### 📈 Data Analysis")
 
                                 st.markdown(f"""
                                     <div class="stat-card">
-                                        <div class="metric-label">🔥 Total de Focos</div>
+                                        <div class="metric-label">🔥 Total Fire Spots</div>
                                         <div class="metric-value">{total_fires}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
 
                                 st.markdown(f"""
                                     <div class="stat-card">
-                                        <div class="metric-label">📊 Dias com Dados</div>
-                                        <div class="metric-value">{len(focos_per_day)}</div>
+                                        <div class="metric-label">📊 Days with Data</div>
+                                        <div class="metric-value">{len(fires_per_day)}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
 
                                 st.markdown(f"""
                                     <div class="stat-card">
-                                        <div class="metric-label">📈 Média/Dia</div>
+                                        <div class="metric-label">📈 Average/Day</div>
                                         <div class="metric-value">{avg_fires_per_day:.1f}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
 
                                 st.markdown(f"""
                                     <div class="stat-card">
-                                        <div class="metric-label">⚡ Pico</div>
+                                        <div class="metric-label">⚡ Peak</div>
                                         <div class="metric-value">{max_fires_day}</div>
                                     </div>
                                 """, unsafe_allow_html=True)
 
-                            # Processamento do vídeo
-                            with st.status("🎬 Gerando artefatos...") as status:
-                                status.update(label="🎵 Criando trilha sonora...", state="running")
+                            # Video processing
+                            with st.status("🎬 Generating artifacts...") as status:
+                                status.update(label="🎵 Creating soundtrack...", state="running")
 
-                                all_days = focos_per_day['acq_date'].tolist()
-                                n_days = len(focos_per_day)
+                                all_days = fires_per_day['acq_date'].tolist()
+                                n_days = len(fires_per_day)
                                 duration_per_day_ms = int((total_duration_sec * 1000) / n_days)
                                 pause_ms = 50
                                 chord_ms = duration_per_day_ms - pause_ms
                                 n_fade_frames = 10
 
-                                # Música
+                                # Music
                                 notes_penta = [130.81, 146.83, 164.81, 174.61, 196.00, 220.00,
                                                246.94, 261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88]
                                 melody_segments = []
-                                max_fires = focos_per_day['n_fires'].max()
-                                min_fires = focos_per_day['n_fires'].min()
+                                max_fires = fires_per_day['n_fires'].max()
+                                min_fires = fires_per_day['n_fires'].min()
                                 last_note_idx = np.random.randint(1, len(notes_penta)-4)
 
-                                for day, n_fires in focos_per_day.values:
+                                for day, n_fires in fires_per_day.values:
                                     amplitude = np.interp(n_fires, [min_fires, max_fires], [0.3, 0.7])
                                     shift = np.random.randint(-3, 4)
                                     note_idx = np.clip(last_note_idx + shift, 1, len(notes_penta)-4)
@@ -428,19 +430,16 @@ with col_right:
                                 melody.export(file_name, format="mp3", bitrate="192k")
                                 st.session_state['mp3_file'] = file_name
 
-                                status.update(label="🗺️ Gerando mapas...", state="running")
+                                status.update(label="🗺️ Generating maps...", state="running")
 
-                                # Mapa
+                                # Map
                                 lon_min = longitude_center - radius_km/100
                                 lon_max = longitude_center + radius_km/100
                                 lat_min = latitude_center - radius_km/100
                                 lat_max = latitude_center + radius_km/100
                                 images_files = []
-
-                                TARGET_WIDTH = 1920
-                                TARGET_HEIGHT = 1080
                                 
-                                # --- INTRODUÇÃO ---
+                                # --- INTRODUCTION ---
                                 intro_frames = 30
                                 images_files = []
                                 
@@ -467,7 +466,7 @@ with col_right:
                                     ax_map.plot(longitude_center, latitude_center, 'ro', markersize=15,
                                                 transform=ccrs.PlateCarree(), alpha=0.8)
                                 
-                                    # Círculo crescendo
+                                    # Growing circle
                                     current_radius_km = radius_km * progress
                                     lat_deg_radius = current_radius_km / 111
                                     lon_deg_radius = current_radius_km / (111 * np.cos(np.radians(latitude_center)))
@@ -479,7 +478,7 @@ with col_right:
                                     ax_map.plot(lon_circle, lat_circle, 'r-', linewidth=2,
                                                 transform=ccrs.PlateCarree(), alpha=0.7)
                                 
-                                    # Linha do centro até borda (últimos frames)
+                                    # Line from center to edge (last frames)
                                     if progress > 0.7:
                                         lat_end = latitude_center + lat_deg_radius * np.sin(np.pi/4)
                                         lon_end = longitude_center + lon_deg_radius * np.cos(np.pi/4)
@@ -494,7 +493,7 @@ with col_right:
                                                     transform=ccrs.PlateCarree(), ha='center', va='center',
                                                     bbox=dict(boxstyle="round,pad=0.3", facecolor='red', alpha=0.7))
                                 
-                                    # Subplot inferior vazio
+                                    # Empty lower subplot
                                     ax_bar.set_facecolor('black')
                                     ax_bar.set_xlim(0, 1)
                                     ax_bar.set_ylim(0, 1)
@@ -509,7 +508,7 @@ with col_right:
                                     fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0)
                                     plt.close(fig)
                                 
-                                    # --- FORÇAR RGB e tamanho exato 1920x1080 ---
+                                    # --- FORCE RGB and exact size 1920x1080 ---
                                     img = Image.open(png_file).convert("RGB")
                                     final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
                                     img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
@@ -518,10 +517,10 @@ with col_right:
                                     final_img.save(png_file, quality=95)
                                     images_files.append(png_file)
                                 
-                                # --- LOOP PRINCIPAL: FOCOS DE INCÊNDIO ---
+                                # --- MAIN LOOP: FIRE SPOTS ---
                                 n_fade_frames = 10
                                 
-                                for i, (day, n_fires) in enumerate(focos_per_day.values):
+                                for i, (day, n_fires) in enumerate(fires_per_day.values):
                                     df_day = df_local[df_local['acq_date'] == day]
                                     frp_norm = np.zeros(len(df_day))
                                     if 'frp' in df_day.columns and not df_day['frp'].isna().all():
@@ -547,7 +546,7 @@ with col_right:
                                         ax_map.set_xticks([])
                                         ax_map.set_yticks([])
                                 
-                                        # Focos
+                                        # Fire spots
                                         scatter = ax_map.scatter(
                                             df_day[lon_col],
                                             df_day[lat_col],
@@ -561,7 +560,7 @@ with col_right:
                                             marker='o'
                                         )
                                 
-                                        # Efeitos de brilho
+                                        # Glow effects
                                         if len(df_day) > 0:
                                             high_intensity = df_day[df_day['frp'] > df_day['frp'].quantile(0.7)] if 'frp' in df_day.columns else df_day
                                             if len(high_intensity) > 0:
@@ -577,18 +576,18 @@ with col_right:
                                                     marker='*'
                                                 )
                                 
-                                        # Barra temporal
+                                        # Timeline bar
                                         bar_heights = [
-                                            focos_per_day.loc[focos_per_day['acq_date']==d,'n_fires'].values[0]
+                                            fires_per_day.loc[fires_per_day['acq_date']==d,'n_fires'].values[0]
                                             if d<=day else 0
                                             for d in all_days
                                         ]
                                         colors = ['orangered' if d<=day else 'gray' for d in all_days]
                                         ax_bar.bar(all_days, bar_heights, color=colors, alpha=0.8)
                                         ax_bar.tick_params(colors='white', labelsize=14)
-                                        ax_bar.set_ylabel('Número de Incêndios', color='white', fontsize=16)
-                                        ax_bar.set_xlabel('Data', color='white', fontsize=16)
-                                        ax_bar.set_ylim(0, focos_per_day['n_fires'].max()*1.2)
+                                        ax_bar.set_ylabel('Number of Fires', color='white', fontsize=16)
+                                        ax_bar.set_xlabel('Date', color='white', fontsize=16)
+                                        ax_bar.set_ylim(0, fires_per_day['n_fires'].max()*1.2)
                                         plt.setp(ax_bar.get_xticklabels(), rotation=45, ha='right')
                                         for spine in ax_bar.spines.values():
                                             spine.set_visible(False)
@@ -599,81 +598,3 @@ with col_right:
                                         png_file = f"maps_png/map_{i}_{k}.png"
                                         fig.savefig(png_file, facecolor='#000000', bbox_inches='tight', pad_inches=0)
                                         plt.close(fig)
-                                
-                                        # --- FORÇAR RGB e tamanho exato 1920x1080 ---
-                                        img = Image.open(png_file).convert("RGB")
-                                        final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
-                                        img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
-                                        offset = ((TARGET_WIDTH - img.width)//2, (TARGET_HEIGHT - img.height)//2)
-                                        final_img.paste(img, offset)
-                                        final_img.save(png_file)
-                                        images_files.append(png_file)
-
-
-                                status.update(label="🎬 Compilando vídeo...", state="running")
-
-                                # Ajustar durações - introdução mais rápida, focos no tempo da música
-                                total_frames = len(images_files)
-                                intro_duration = 4.0  # 2 segundos para introdução
-                                fires_duration = total_duration_sec - intro_duration
-
-                                intro_frame_duration = intro_duration / intro_frames
-                                fires_frame_duration = fires_duration / (total_frames - intro_frames)
-
-                                frame_durations = [intro_frame_duration] * intro_frames + [fires_frame_duration] * (total_frames - intro_frames)
-
-                                clip = ImageSequenceClip(images_files, durations=frame_durations)
-                                clip = clip.on_color(size=(1920,1080), color=(0,0,0))
-                                audio_clip = AudioFileClip(file_name)
-                                clip = clip.set_audio(audio_clip)
-                                clip.fps = 24
-
-                                mp4_file = "fires_cinematic.mp4"
-                                clip.write_videofile(mp4_file, codec="libx264", audio_codec="aac", verbose=False, logger=None)
-                                st.session_state['video_file'] = mp4_file
-
-                                status.update(label="✅ Concluído!", state="complete")
-
-                            st.markdown("""
-                                <div class="success-box">
-                                    <strong>✨ Sucesso!</strong> Sua experiência audiovisual foi gerada com sucesso!
-                                </div>
-                            """, unsafe_allow_html=True)
-
-                except Exception as e:
-                    st.error(f"❌ Erro: {str(e)}")
-
-# -------------------
-# Display Video and Downloads - Right Column
-# -------------------
-if 'video_file' in st.session_state:
-    with col_right:
-        st.markdown("### 🎬 Sua Criação")
-        st.markdown('<div class="video-container">', unsafe_allow_html=True)
-        st.video(st.session_state['video_file'])
-        st.markdown('</div>', unsafe_allow_html=True)
-
-        st.markdown('<div class="download-buttons">', unsafe_allow_html=True)
-        col_d1, col_d2 = st.columns(2)
-
-        with col_d1:
-            if 'mp3_file' in st.session_state:
-                with open(st.session_state['mp3_file'], "rb") as f:
-                    st.download_button(
-                        label="🎵 MP3",
-                        data=f.read(),
-                        file_name=st.session_state['mp3_file'],
-                        mime="audio/mpeg",
-                        use_container_width=True
-                    )
-
-        with col_d2:
-            with open(st.session_state['video_file'], "rb") as f:
-                st.download_button(
-                    label="🎬 MP4",
-                    data=f.read(),
-                    file_name=st.session_state['video_file'],
-                    mime="video/mp4",
-                    use_container_width=True
-                )
-        st.markdown('</div>', unsafe_allow_html=True)
