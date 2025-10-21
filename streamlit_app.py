@@ -210,12 +210,13 @@ def generate_tone(frequency, duration_ms, waveform='sine', amplitude=0.5):
         tone = Triangle(frequency).to_audio_segment(duration=duration_ms)
     elif waveform == 'complex':
         tone = Sine(frequency).to_audio_segment(duration=duration_ms)
-        tone = tone.overlay(Sine(frequency * 2).to_audio_segment(duration=duration_ms) - 12)
-        tone = tone.overlay(Sine(frequency * 3).to_audio_segment(duration=duration_ms) - 18)
+        tone = tone.overlay(Sine(frequency * 2).to_audio_segment(duration=duration_ms) - 15)
+        tone = tone.overlay(Sine(frequency * 3).to_audio_segment(duration=duration_ms) - 22)
     else:
         tone = Sine(frequency).to_audio_segment(duration=duration_ms)
     
-    tone = tone.apply_gain(-40 + amplitude * 35)
+    # Reduzido para sons mais suaves
+    tone = tone.apply_gain(-50 + amplitude * 25)
     return tone
 
 
@@ -224,18 +225,21 @@ def create_ambient_layer(duration_ms, intensity=0.3):
     drone1 = Sine(55).to_audio_segment(duration=duration_ms)
     drone2 = Sine(82.4).to_audio_segment(duration=duration_ms)
     
+    # Reduzir ruído para som mais limpo
     noise = AudioSegment.silent(duration=duration_ms)
-    for _ in range(5):
-        freq = np.random.uniform(100, 300)
+    for _ in range(3):  # Reduzido de 5 para 3
+        freq = np.random.uniform(150, 250)
         noise_tone = Sine(freq).to_audio_segment(duration=duration_ms)
-        noise_tone = noise_tone.apply_gain(-50 + np.random.uniform(-5, 5))
+        noise_tone = noise_tone.apply_gain(-55 + np.random.uniform(-3, 3))
         noise = noise.overlay(noise_tone)
     
-    ambient = drone1.apply_gain(-35 + intensity * 15)
-    ambient = ambient.overlay(drone2.apply_gain(-38 + intensity * 15))
-    ambient = ambient.overlay(noise.apply_gain(-45))
+    # Volume mais baixo e suave
+    ambient = drone1.apply_gain(-45 + intensity * 10)
+    ambient = ambient.overlay(drone2.apply_gain(-48 + intensity * 10))
+    ambient = ambient.overlay(noise.apply_gain(-50))
     
-    ambient = ambient.fade_in(int(duration_ms * 0.3)).fade_out(int(duration_ms * 0.3))
+    # Fade mais longo para suavidade
+    ambient = ambient.fade_in(int(duration_ms * 0.4)).fade_out(int(duration_ms * 0.4))
     
     return ambient
 
@@ -244,29 +248,31 @@ def epic_chord_v2(frequencies, duration_ms, fire_intensity=0.5, day_index=0, tot
     """Versão melhorada dos acordes com mais diferenciação e impacto."""
     chord = AudioSegment.silent(duration=duration_ms)
     
+    # Usar timbres mais suaves em geral
     if fire_intensity < 0.3:
+        waveforms = ['sine', 'sine', 'sine', 'sine']
+        attack_time = 0.4
+        release_time = 0.8
+    elif fire_intensity < 0.6:
         waveforms = ['sine', 'sine', 'triangle', 'sine']
         attack_time = 0.3
         release_time = 0.7
-    elif fire_intensity < 0.6:
-        waveforms = ['sine', 'triangle', 'complex', 'sine']
+    else:
+        waveforms = ['sine', 'triangle', 'complex', 'sine']  # Removido sawtooth e square
         attack_time = 0.2
         release_time = 0.6
-    else:
-        waveforms = ['complex', 'sawtooth', 'complex', 'square']
-        attack_time = 0.1
-        release_time = 0.5
     
-    pan_positions = [-0.6, -0.2, 0.2, 0.6, 0.0]
+    pan_positions = [-0.4, -0.15, 0.15, 0.4, 0.0]
     
     for i, freq in enumerate(frequencies):
         waveform = waveforms[i % len(waveforms)]
         
-        base_amplitude = 0.4 + fire_intensity * 0.4
+        # Amplitude mais controlada
+        base_amplitude = 0.3 + fire_intensity * 0.3
         if i == 0:
-            amplitude = base_amplitude * 1.2
+            amplitude = base_amplitude * 1.0
         else:
-            amplitude = base_amplitude * (0.7 + i * 0.1)
+            amplitude = base_amplitude * (0.6 + i * 0.08)
         
         note = generate_tone(freq, duration_ms, waveform, amplitude)
         
@@ -279,26 +285,28 @@ def epic_chord_v2(frequencies, duration_ms, fire_intensity=0.5, day_index=0, tot
         
         chord = chord.overlay(note)
     
-    # Efeitos especiais
-    if fire_intensity > 0.4:
-        num_echoes = 2 if fire_intensity > 0.7 else 1
+    # Efeitos reduzidos
+    if fire_intensity > 0.5:  # Aumentado threshold
+        num_echoes = 1
         for i in range(num_echoes):
-            delay_ms = int(duration_ms * 0.3 * (i + 1))
-            decay_db = -(8 + i * 6)
+            delay_ms = int(duration_ms * 0.4 * (i + 1))
+            decay_db = -(12 + i * 8)  # Mais suave
             chord = chord.overlay(chord + decay_db, position=delay_ms)
     
-    if fire_intensity > 0.5:
-        attack_freq = frequencies[0] * 4
-        attack = Sine(attack_freq).to_audio_segment(duration=50)
-        attack = attack.apply_gain(-25 + fire_intensity * 10)
-        attack = attack.fade_out(40)
+    # Remover transiente agressivo, deixar apenas em intensidade muito alta
+    if fire_intensity > 0.8:
+        attack_freq = frequencies[0] * 3
+        attack = Sine(attack_freq).to_audio_segment(duration=40)
+        attack = attack.apply_gain(-40 + fire_intensity * 8)
+        attack = attack.fade_out(35)
         chord = chord.overlay(attack, position=0)
     
-    if fire_intensity > 0.6:
+    # Sub-bass mais suave
+    if fire_intensity > 0.7:
         sub_freq = frequencies[0] / 2
         sub_bass = Sine(sub_freq).to_audio_segment(duration=duration_ms)
-        sub_bass = sub_bass.apply_gain(-35 + fire_intensity * 10)
-        sub_bass = sub_bass.fade_in(100).fade_out(int(duration_ms * 0.6))
+        sub_bass = sub_bass.apply_gain(-45 + fire_intensity * 8)
+        sub_bass = sub_bass.fade_in(150).fade_out(int(duration_ms * 0.7))
         chord = chord.overlay(sub_bass)
     
     return chord
@@ -310,51 +318,52 @@ def create_transition(duration_ms, transition_type='rise', intensity=0.5):
         return AudioSegment.silent(duration=duration_ms)
     
     elif transition_type == 'rise':
-        start_freq = 100
-        end_freq = 400 + intensity * 400
+        start_freq = 130
+        end_freq = 350 + intensity * 300
         sweep = AudioSegment.silent(duration=duration_ms)
         
-        steps = 20
+        steps = 15  # Menos steps para som mais suave
         for i in range(steps):
             progress = i / steps
             freq = start_freq + (end_freq - start_freq) * progress
             segment_duration = duration_ms // steps
             tone = Sine(freq).to_audio_segment(duration=segment_duration)
-            tone = tone.apply_gain(-35 + intensity * 10)
+            tone = tone.apply_gain(-45 + intensity * 8)  # Muito mais suave
             sweep = sweep.overlay(tone, position=i * segment_duration)
         
-        return sweep.fade_out(int(duration_ms * 0.3))
+        return sweep.fade_out(int(duration_ms * 0.5))
     
     elif transition_type == 'fall':
-        start_freq = 800 - intensity * 300
-        end_freq = 100
+        start_freq = 600 - intensity * 200
+        end_freq = 130
         sweep = AudioSegment.silent(duration=duration_ms)
         
-        steps = 15
+        steps = 12
         for i in range(steps):
             progress = i / steps
             freq = start_freq - (start_freq - end_freq) * progress
             segment_duration = duration_ms // steps
             tone = Sine(freq).to_audio_segment(duration=segment_duration)
-            tone = tone.apply_gain(-35 + intensity * 10)
+            tone = tone.apply_gain(-45 + intensity * 8)
             sweep = sweep.overlay(tone, position=i * segment_duration)
         
-        return sweep.fade_in(int(duration_ms * 0.3))
+        return sweep.fade_in(int(duration_ms * 0.4))
     
     elif transition_type == 'impact':
         impact = AudioSegment.silent(duration=duration_ms)
         
-        low = Sine(50).to_audio_segment(duration=duration_ms)
-        low = low.apply_gain(-25 + intensity * 15)
-        low = low.fade_out(int(duration_ms * 0.8))
+        # Impact mais sutil
+        low = Sine(60).to_audio_segment(duration=duration_ms)
+        low = low.apply_gain(-40 + intensity * 10)
+        low = low.fade_out(int(duration_ms * 0.9))
         
-        mid = Square(200).to_audio_segment(duration=duration_ms // 2)
-        mid = mid.apply_gain(-30 + intensity * 10)
-        mid = mid.fade_out(int(duration_ms * 0.4))
+        mid = Sine(250).to_audio_segment(duration=duration_ms // 2)  # Sine ao invés de Square
+        mid = mid.apply_gain(-42 + intensity * 8)
+        mid = mid.fade_out(int(duration_ms * 0.5))
         
-        high = Sine(1200).to_audio_segment(duration=duration_ms // 4)
-        high = high.apply_gain(-35 + intensity * 15)
-        high = high.fade_out(int(duration_ms * 0.3))
+        high = Sine(800).to_audio_segment(duration=duration_ms // 4)  # Freq mais baixa
+        high = high.apply_gain(-45 + intensity * 10)
+        high = high.fade_out(int(duration_ms * 0.4))
         
         impact = impact.overlay(low).overlay(mid).overlay(high)
         return impact
@@ -365,14 +374,14 @@ def compose_fire_symphony(fires_per_day_df, total_duration_sec=14):
     n_days = len(fires_per_day_df)
     duration_per_day_ms = int((total_duration_sec * 1000) / n_days)
     
-    transition_ms = min(100, duration_per_day_ms // 4)
+    transition_ms = min(80, duration_per_day_ms // 5)  # Transições mais curtas
     chord_ms = duration_per_day_ms - transition_ms
     
+    # Escala pentatônica mais focada em registros médios/agudos (mais etérea)
     notes_penta = [
-        65.41, 73.42, 82.41, 87.31, 98.00, 110.00,
-        130.81, 146.83, 164.81, 174.61, 196.00, 220.00,
-        261.63, 293.66, 329.63, 349.23, 392.00, 440.00,
-        523.25, 587.33
+        130.81, 146.83, 164.81, 174.61, 196.00, 220.00,  # C3-A3
+        261.63, 293.66, 329.63, 349.23, 392.00, 440.00,  # C4-A4
+        523.25, 587.33, 659.25, 698.46, 783.99           # C5-G5
     ]
     
     max_fires = fires_per_day_df['n_fires'].max()
@@ -381,39 +390,42 @@ def compose_fire_symphony(fires_per_day_df, total_duration_sec=14):
     
     ambient_layer = create_ambient_layer(
         total_duration_sec * 1000, 
-        intensity=min(0.5, mean_fires / max_fires)
+        intensity=min(0.3, mean_fires / max_fires)  # Reduzido de 0.5 para 0.3
     )
     
     melody_segments = []
-    last_note_idx = np.random.randint(4, 10)
-    last_intensity = 0.3
+    last_note_idx = np.random.randint(5, 9)  # Começar no registro médio
+    last_intensity = 0.2
     
     for day_idx, (day, n_fires) in enumerate(fires_per_day_df.values):
-        intensity = np.interp(n_fires, [min_fires, max_fires], [0.2, 0.95])
+        # Intensidade mais controlada
+        intensity = np.interp(n_fires, [min_fires, max_fires], [0.15, 0.75])  # Reduzido de 0.2-0.95 para 0.15-0.75
         
         intensity_change = intensity - last_intensity
         
+        # Movimentos melódicos mais suaves
         if intensity_change > 0.3:
-            shift = np.random.randint(3, 7)
+            shift = np.random.randint(2, 5)  # Reduzido
         elif intensity_change > 0.1:
-            shift = np.random.randint(1, 4)
+            shift = np.random.randint(1, 3)
         elif intensity_change < -0.3:
-            shift = np.random.randint(-7, -3)
+            shift = np.random.randint(-5, -2)
         elif intensity_change < -0.1:
-            shift = np.random.randint(-4, -1)
+            shift = np.random.randint(-3, -1)
         else:
-            shift = np.random.randint(-2, 3)
+            shift = np.random.randint(-1, 2)
         
-        note_idx = np.clip(last_note_idx + shift, 2, len(notes_penta) - 5)
+        note_idx = np.clip(last_note_idx + shift, 2, len(notes_penta) - 4)
         
         f_base = notes_penta[note_idx]
         
+        # Acordes mais simples e consonantes
         if intensity < 0.4:
-            intervals = [1, 1.25, 1.5]
-        elif intensity < 0.7:
-            intervals = [1, 1.25, 1.5, 1.875]
+            intervals = [1, 1.25, 1.5]  # Tríade maior suave
+        elif intensity < 0.6:
+            intervals = [1, 1.25, 1.5, 2]  # Adicionar oitava
         else:
-            intervals = [1, 1.125, 1.33, 1.5, 2]
+            intervals = [1, 1.2, 1.5, 1.875]  # Acorde mais cheio mas ainda consonante
         
         frequencies = [f_base * x for x in intervals]
         
@@ -427,16 +439,17 @@ def compose_fire_symphony(fires_per_day_df, total_duration_sec=14):
         
         melody_segments.append(chord)
         
+        # Menos impacts, mais transições suaves
         is_peak = (day_idx > 0 and day_idx < n_days - 1 and 
                    n_fires > fires_per_day_df.iloc[day_idx - 1]['n_fires'] and
                    n_fires > fires_per_day_df.iloc[day_idx + 1]['n_fires'] and
-                   intensity > 0.7)
+                   intensity > 0.8)  # Threshold aumentado
         
         if is_peak:
             transition = create_transition(transition_ms, 'impact', intensity)
-        elif intensity_change > 0.2:
+        elif intensity_change > 0.25:  # Threshold aumentado
             transition = create_transition(transition_ms, 'rise', intensity)
-        elif intensity_change < -0.2:
+        elif intensity_change < -0.25:
             transition = create_transition(transition_ms, 'fall', intensity)
         else:
             transition = AudioSegment.silent(duration=transition_ms)
@@ -447,9 +460,16 @@ def compose_fire_symphony(fires_per_day_df, total_duration_sec=14):
         last_intensity = intensity
     
     melody = sum(melody_segments)
-    final_mix = melody.overlay(ambient_layer)
-    final_mix = final_mix.fade_in(500).fade_out(1000)
-    final_mix = final_mix.normalize()
+    
+    # Mixagem mais equilibrada
+    final_mix = melody.overlay(ambient_layer - 3)  # Ambiente ainda mais baixo
+    
+    # Fade mais longo e suave
+    final_mix = final_mix.fade_in(1000).fade_out(2000)
+    
+    # Normalização mais suave para evitar picos
+    final_mix = final_mix.apply_gain(-3)  # Reduzir 3dB antes de normalizar
+    final_mix = final_mix.normalize(headroom=0.3)  # Deixar headroom
     
     return final_mix
 
