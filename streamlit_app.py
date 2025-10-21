@@ -16,7 +16,7 @@ from PIL import Image
 from datetime import datetime, timedelta
 from pydub.utils import which
 
-# 🔧 Corrige o caminho do ffmpeg e ffprobe no ambiente remoto (como Streamlit Cloud)
+# 🔧 Fix ffmpeg and ffprobe paths in remote environments (like Streamlit Cloud)
 AudioSegment.converter = which("ffmpeg")
 AudioSegment.ffprobe = which("ffprobe")
 
@@ -29,7 +29,7 @@ st.set_page_config(
     initial_sidebar_state="expanded",
 )
 
-# Custom CSS para design com tema de incêndios
+# Custom CSS for fire-themed design
 st.markdown("""
     <style>
         :root {
@@ -204,18 +204,17 @@ def distance_km(lat1, lon1, lat2, lon2):
     return 2 * R * np.arcsin(np.sqrt(a))
 
 def humming(frequency, duration_ms, amplitude=0.2):
-    humming_sound = Sine(frequency).to_audio_segment(duration=duration_ms)
-    humming_sound = humming_sound.fade_in(int(duration_ms*0.05)).fade_out(int(duration_ms*0.05))
-    humming_sound = humming_sound.apply_gain(-30 + amplitude*20)
-    return humming_sound
+    sound = Sine(frequency).to_audio_segment(duration=duration_ms)
+    sound = sound.fade_in(int(duration_ms*0.05)).fade_out(int(duration_ms*0.05))
+    sound = sound.apply_gain(-30 + amplitude*20)
+    return sound
 
 def epic_chord(frequencies, duration_ms, amplitude=0.5):
     chord = AudioSegment.silent(duration=duration_ms)
     pan_positions = [-0.4, 0.4, -0.2, 0.2, 0.0]
     note_cache = {}
     for f in frequencies:
-        note = Sine(f).to_audio_segment(duration=duration_ms)
-        note_cache[f] = note
+        note_cache[f] = Sine(f).to_audio_segment(duration=duration_ms)
     for i, f in enumerate(frequencies):
         note = note_cache[f]
         note = note.fade_in(int(duration_ms*0.2)).fade_out(int(duration_ms*0.8))
@@ -226,8 +225,10 @@ def epic_chord(frequencies, duration_ms, amplitude=0.5):
         delay = int(duration_ms * 0.5 * (i+1))
         chord = chord.overlay(chord - (10 + i*5), position=delay)
     return chord
+
 TARGET_WIDTH = 1920
 TARGET_HEIGHT = 1080
+
 # -------------------
 # Header
 # -------------------
@@ -235,7 +236,7 @@ st.markdown("""
     <div class="main-header">
         <h1 style="margin: 0; color: white; font-size: 36px;">🔥 Hear the Fire</h1>
         <p style="margin: 8px 0 0 0; color: rgba(0,0,0,0.8); font-size: 16px;">
-            Transforme dados de incêndios em uma experiência audiovisual imersiva
+            Transform fire data into an immersive audiovisual experience
         </p>
     </div>
 """, unsafe_allow_html=True)
@@ -243,31 +244,31 @@ st.markdown("""
 # -------------------
 # Sidebar Configuration
 # -------------------
-st.sidebar.markdown("### ⚙️ Configurações")
+st.sidebar.markdown("### ⚙️ Settings")
 st.sidebar.markdown("---")
 
-# API Key fixa (não mostrada no dashboard)
+# Fixed API Key (not shown in dashboard)
 map_key = "aa8b33fef53700c18bce394211eeb2e7"
 
-st.sidebar.markdown('<div class="sidebar-section"><strong>📍 Localização</strong></div>', unsafe_allow_html=True)
+st.sidebar.markdown('<div class="sidebar-section"><strong>📍 Location</strong></div>', unsafe_allow_html=True)
 col1, col2 = st.sidebar.columns(2)
 with col1:
     latitude_center = st.number_input("Latitude", value=-19.0, step=0.1)
 with col2:
     longitude_center = st.number_input("Longitude", value=-59.4, step=0.1)
 
-radius_km = st.sidebar.slider("Raio (km)", min_value=50, max_value=1000, value=150, step=50)
+radius_km = st.sidebar.slider("Radius (km)", min_value=50, max_value=1000, value=150, step=50)
 
-st.sidebar.markdown('<div class="sidebar-section"><strong>📅 Dados</strong></div>', unsafe_allow_html=True)
+st.sidebar.markdown('<div class="sidebar-section"><strong>📅 Data</strong></div>', unsafe_allow_html=True)
 col1, col2 = st.sidebar.columns(2)
 with col1:
-    data_date = st.date_input("Data inicial", value=datetime(2019, 8, 14))
+    data_date = st.date_input("Start Date", value=datetime(2019, 8, 14))
     data_date = data_date.strftime("%Y-%m-%d")
 with col2:
-    day_range = st.number_input("Dias a recuperar", value=7, min_value=1, max_value=30)
+    day_range = st.number_input("Days to retrieve", value=7, min_value=1, max_value=30)
 
-st.sidebar.markdown('<div class="sidebar-section"><strong>🎵 Áudio</strong></div>', unsafe_allow_html=True)
-total_duration_sec = st.sidebar.slider("Duração total (seg)", min_value=5, max_value=60, value=14, step=1)
+st.sidebar.markdown('<div class="sidebar-section"><strong>🎵 Audio</strong></div>', unsafe_allow_html=True)
+total_duration_sec = st.sidebar.slider("Total Duration (sec)", min_value=5, max_value=60, value=14, step=1)
 
 st.sidebar.markdown("---")
 os.makedirs("maps_png", exist_ok=True)
