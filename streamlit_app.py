@@ -428,3 +428,171 @@ with col_right:
                                     final_img.paste(img, offset)
                                     final_img.save(png_file, quality=95)
                                     images_files.append(png_file)
+                                
+                                # Fire frames
+                                n_fade_frames = 10
+                                
+                                for i, (day, n_fires) in enumerate(fires_per_day.values):
+                                    df_day = df_local[df_local['acq_date'] == day]
+                                    frp_norm = np.zeros(len(df_day))
+                                    if 'frp' in df_day.columns and not df_day['frp'].isna().all():
+                                        frp_norm = (df_day['frp'] - df_day['frp'].min()) / (df_day['frp'].max() - df_day['frp'].min() + 1e-6)
+                                
+                                    for k in range(n_fade_frames):
+                                        alpha = (k+1)/n_fade_frames
+                                
+                                        fig = plt.figure(figsize=(20, 15), dpi=200)
+                                        fig.patch.set_facecolor('black')
+                                        gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
+                                        ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
+                                        ax_bar = fig.add_subplot(gs[1])
+                                
+                                        ax_map.set_facecolor('black')
+                                        ax_bar.set_facecolor('black')
+                                        ax_map.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
+                                        ax_map.add_feature(cfeature.LAND, facecolor='none', edgecolor='gray', linewidth=0.8)
+                                        ax_map.add_feature(cfeature.BORDERS, edgecolor='gray', linewidth=0.5)
+                                        ax_map.add_feature(cfeature.COASTLINE, edgecolor='gray', linewidth=0.5)
+                                        ax_map.set_xticks([])
+                                        ax_map.set_yticks([])
+                                
+                                        scatter = ax_map.scatter(
+                                            df_day[lon_col],
+                                            df_day[lat_col],
+                                            c=frp_norm,
+                                            cmap='hot',
+                                            s=200 + 100 * np.sin(alpha * np.pi),
+                                            alpha=0.7 + 0.3*alpha,
+                                            linewidths=2,
+                                            edgecolors='yellow',
+                                            transform=ccrs.PlateCarree(),
+                                            marker='o'
+                                        )
+                                
+                                        if len(df_day) > 0:
+                                            high_intensity = df_day[df_day['frp'] > df_day['frp'].quantile(0.7)] if 'frp' in df_day.columns else df_day
+                                            if len(high_intensity) > 0:
+                                                ax_map.scatter(
+                                                    high_intensity[lon_col],
+                                                    high_intensity[lat_col],
+                                                    c='white',
+                                                    s=300,
+                                                    alpha=0.3*alpha,
+                                                    linewidths=1,
+                                                    edgecolors='orange',
+                                                    transform=ccrs.PlateCarree(),
+                                                    marker='*'
+                                                )
+                                
+                                        bar_heights = [
+                                            fires_per_day.loc[fires_per_day['acq_date']==d,'n_fires'].values[0]
+                                            if d<=day else 0
+                                            for d in all_days
+                                        ]
+                                        colors = ['orangered' if d<=day else 'gray' for d in all_days]
+                                        bars = ax_bar.bar(all_days, bar_heights, color=colors, alpha=0.9, edgecolor='white', linewidth=0.5)
+                                        
+                                        for bar, height in zip(bars, bar_heights):
+                                            if height > 0:
+                                                bar.set_linewidth(1.5)
+                                                bar.set_edgecolor('#ffd700')
+                                        
+                                        ax_bar.tick_params(colors='white', labelsize=12)
+                                        ax_bar.set_ylabel('Number of Fires', color='white', fontsize=14, fontweight='bold')
+                                        ax_bar.set_xlabel('Date', color='white', fontsize=14, fontweight='bold')
+                                        ax_bar.set_ylim(0, fires_per_day['n_fires'].max()*1.2)
+                                        ax_bar.grid(axis='y', alpha=0.2, linestyle='--', color='gray')
+                                        ax_bar.set_facecolor('#0a0a0a')
+                                        plt.setp(ax_bar.get_xticklabels(), rotation=45, ha='right')
+                                        for spine in ax_bar.spines.values():
+                                            spine.set_color('#ff8c00')
+                                            spine.set_linewidth(1.5)
+                                        for spine in ax_map.spines.values():
+                                            spine.set_visible(False)
+                                        ax_map.tick_params(left=False, right=False, top=False, bottom=False)
+                                
+                                        png_file = f"maps_png/map_{i}_{k}.png"
+                                        fig.savefig(png_file, facecolor='#000000', bbox_inches='tight', pad_inches=0)
+                                        plt.close(fig)
+                                
+                                        img = Image.open(png_file).convert("RGB")
+                                        final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
+                                        img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
+                                        offset = ((TARGET_WIDTH - img.width)//2, (TARGET_HEIGHT - img.height)//2)
+                                        final_img.paste(img, offset)
+                                        final_img.save(png_file)
+                                        images_files.append(png_file)
+
+                                status.update(label="🎬 Compiling video...", state="running")
+
+                                intro_duration = 4.0
+                                fires_duration = total_duration_sec
+
+                                intro_frame_duration = intro_duration / intro_frames
+                                fires_frame_count = len(images_files) - intro_frames
+                                fires_frame_duration = fires_duration / fires_frame_count if fires_frame_count > 0 else 0.1
+
+                                frame_durations = [intro_frame_duration] * intro_frames + [fires_frame_duration] * fires_frame_count
+
+                                clip = ImageSequenceClip(images_files, durations=frame_durations)
+                                clip = clip.on_color(size=(1920,1080), color=(0,0,0))
+                                
+                                audio_clip = AudioFileClip(file_name)
+                                
+                                def make_frame(t):
+                                    return [0, 0]
+                                
+                                silent_audio = AudioClip(make_frame, duration=intro_duration, fps=44100)
+                                full_audio = concatenate_audioclips([silent_audio, audio_clip])
+                                clip = clip.set_audio(full_audio)
+                                clip.fps = 24
+
+                                mp4_file = "fires_cinematic.mp4"
+                                clip.write_videofile(mp4_file, codec="libx264", audio_codec="aac", verbose=False, logger=None)
+                                st.session_state['video_file'] = mp4_file
+
+                                status.update(label="✅ Complete!", state="complete")
+
+                            st.markdown("""
+                                <div class="success-box">
+                                    <strong>✨ Success!</strong> Your audiovisual experience has been generated successfully!
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
+
+# -------------------
+# Display Video and Downloads
+# -------------------
+if 'video_file' in st.session_state:
+    with col_right:
+        st.markdown("### 🎬 Your Creation")
+        st.markdown('<div class="video-container">', unsafe_allow_html=True)
+        st.video(st.session_state['video_file'])
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="download-buttons">', unsafe_allow_html=True)
+        col_d1, col_d2 = st.columns(2)
+
+        with col_d1:
+            if 'mp3_file' in st.session_state:
+                with open(st.session_state['mp3_file'], "rb") as f:
+                    st.download_button(
+                        label="🎵 MP3",
+                        data=f.read(),
+                        file_name=st.session_state['mp3_file'],
+                        mime="audio/mpeg",
+                        use_container_width=True
+                    )
+
+        with col_d2:
+            with open(st.session_state['video_file'], "rb") as f:
+                st.download_button(
+                    label="🎬 MP4",
+                    data=f.read(),
+                    file_name=st.session_state['video_file'],
+                    mime="video/mp4",
+                    use_container_width=True
+                )
+        st.markdown('</div>', unsafe_allow_html=True)
