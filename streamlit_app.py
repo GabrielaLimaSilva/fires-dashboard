@@ -226,7 +226,7 @@ TARGET_HEIGHT = 1080
 st.markdown('<div class="main-header"><h1>🔥 Hear the Fire</h1><p>Transform fire data into an immersive audiovisual experience</p></div>', unsafe_allow_html=True)
 
 st.sidebar.markdown("### ⚙️ Settings")
-map_key = "aa8b33fef53700c18bce394211eeb2e7"
+map_key = "a4abee84e580a96ff5ba9bd54cd11a8d"
 
 col1, col2 = st.sidebar.columns(2)
 with col1:
