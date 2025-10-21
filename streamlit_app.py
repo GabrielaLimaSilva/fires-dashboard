@@ -225,10 +225,9 @@ TARGET_HEIGHT = 1080
 
 st.markdown('<div class="main-header"><h1>🔥 Hear the Fire</h1><p>Transform fire data into an immersive audiovisual experience</p></div>', unsafe_allow_html=True)
 
-# BARRA DE PROGRESSO NO TOPO
-if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
-    progress_bar = st.progress(0)
-    status_text = st.empty()
+# BARRA DE PROGRESSO NO TOPO - criar placeholders sempre
+progress_placeholder = st.empty()
+status_placeholder = st.empty()
 
 st.sidebar.markdown("### ⚙️ Settings")
 map_key = "a4abee84e580a96ff5ba9bd54cd11a8d"
@@ -285,10 +284,12 @@ with col_right:
         st.markdown('<div class="video-container"><div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.5);"><h2 style="color: #ffd700;">🎬 Your Video Will Appear Here</h2><p>Configure parameters and click GENERATE.</p></div></div>', unsafe_allow_html=True)
 
 if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
+    progress_bar = progress_placeholder.progress(0)
+    status_text = status_placeholder.empty()
+    
     try:
-        if 'progress_bar' in locals() and 'status_text' in locals():
-            status_text.text("🔍 Fetching fire data from NASA...")
-            progress_bar.progress(5)
+        status_text.text("🔍 Fetching fire data from NASA...")
+        progress_bar.progress(5)
         response = requests.get(f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{map_key}/MODIS_SP/world/{day_range}/{data_date}", timeout=30)
         progress_bar.progress(10)
         df = pd.read_csv(StringIO(response.text))
@@ -522,18 +523,16 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             status_text.text("✅ Complete!")
             st.session_state['video_file'] = "fires_video.mp4"
             st.session_state['generate_clicked'] = False
+            progress_placeholder.empty()
+            status_placeholder.empty()
             st.rerun()
         else:
-            if 'progress_bar' in locals():
-                progress_bar.progress(100)
-                status_text.empty()
-                progress_bar.empty()
+            progress_placeholder.empty()
+            status_placeholder.empty()
             st.error("⚠️ No fires found.")
             st.session_state['generate_clicked'] = False
     except Exception as e:
-        if 'progress_bar' in locals():
-            progress_bar.progress(100)
-            status_text.empty()
-            progress_bar.empty()
+        progress_placeholder.empty()
+        status_placeholder.empty()
         st.error(f"❌ Error: {str(e)}")
         st.session_state['generate_clicked'] = False
