@@ -240,7 +240,7 @@ col1, col2 = st.sidebar.columns(2)
 with col1:
     data_date = st.date_input("Start date", value=datetime(2019, 8, 14)).strftime("%Y-%m-%d")
 with col2:
-    day_range = st.number_input("Days", value=7, min_value=1, max_value=30)
+    day_range = st.number_input("Days", value=10, min_value=1, max_value=30)
 
 total_duration_sec = st.sidebar.slider("Duration (sec)", 5, 60, 14, 1)
 
