@@ -598,3 +598,95 @@ with col_right:
                                         png_file = f"maps_png/map_{i}_{k}.png"
                                         fig.savefig(png_file, facecolor='#000000', bbox_inches='tight', pad_inches=0)
                                         plt.close(fig)
+                                
+                                        # --- FORCE RGB and exact size 1920x1080 ---
+                                        img = Image.open(png_file).convert("RGB")
+                                        final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
+                                        img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
+                                        offset = ((TARGET_WIDTH - img.width)//2, (TARGET_HEIGHT - img.height)//2)
+                                        final_img.paste(img, offset)
+                                        final_img.save(png_file)
+                                        images_files.append(png_file)
+
+                                status.update(label="🎬 Compiling video...", state="running")
+
+                                # Adjust durations - faster intro, fires synced with music
+                                intro_duration = 4.0  # 4 seconds for introduction (silent)
+                                fires_duration = total_duration_sec  # Music duration for fire frames
+
+                                intro_frame_duration = intro_duration / intro_frames
+                                fires_frame_count = len(images_files) - intro_frames
+                                fires_frame_duration = fires_duration / fires_frame_count if fires_frame_count > 0 else 0.1
+
+                                # Create frame durations list
+                                frame_durations = [intro_frame_duration] * intro_frames + [fires_frame_duration] * fires_frame_count
+
+                                # Create video clip
+                                clip = ImageSequenceClip(images_files, durations=frame_durations)
+                                clip = clip.on_color(size=(1920,1080), color=(0,0,0))
+                                
+                                # Add audio ONLY to fire frames (starting after intro)
+                                audio_clip = AudioFileClip(file_name)
+                                
+                                # Create silent audio for intro
+                                from moviepy.editor import concatenate_audioclips, AudioClip
+                                
+                                def make_frame(t):
+                                    return [0, 0]  # Stereo silence
+                                
+                                silent_audio = AudioClip(make_frame, duration=intro_duration, fps=44100)
+                                
+                                # Concatenate silent intro + music
+                                full_audio = concatenate_audioclips([silent_audio, audio_clip])
+                                clip = clip.set_audio(full_audio)
+                                clip.fps = 24
+
+                                mp4_file = "fires_cinematic.mp4"
+                                clip.write_videofile(mp4_file, codec="libx264", audio_codec="aac", verbose=False, logger=None)
+                                st.session_state['video_file'] = mp4_file
+
+                                status.update(label="✅ Complete!", state="complete")
+
+                            st.markdown("""
+                                <div class="success-box">
+                                    <strong>✨ Success!</strong> Your audiovisual experience has been generated successfully!
+                                </div>
+                            """, unsafe_allow_html=True)
+
+                except Exception as e:
+                    st.error(f"❌ Error: {str(e)}")
+
+# -------------------
+# Display Video and Downloads - Right Column
+# -------------------
+if 'video_file' in st.session_state:
+    with col_right:
+        st.markdown("### 🎬 Your Creation")
+        st.markdown('<div class="video-container">', unsafe_allow_html=True)
+        st.video(st.session_state['video_file'])
+        st.markdown('</div>', unsafe_allow_html=True)
+
+        st.markdown('<div class="download-buttons">', unsafe_allow_html=True)
+        col_d1, col_d2 = st.columns(2)
+
+        with col_d1:
+            if 'mp3_file' in st.session_state:
+                with open(st.session_state['mp3_file'], "rb") as f:
+                    st.download_button(
+                        label="🎵 MP3",
+                        data=f.read(),
+                        file_name=st.session_state['mp3_file'],
+                        mime="audio/mpeg",
+                        use_container_width=True
+                    )
+
+        with col_d2:
+            with open(st.session_state['video_file'], "rb") as f:
+                st.download_button(
+                    label="🎬 MP4",
+                    data=f.read(),
+                    file_name=st.session_state['video_file'],
+                    mime="video/mp4",
+                    use_container_width=True
+                )
+        st.markdown('</div>', unsafe_allow_html=True)
