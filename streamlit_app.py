@@ -49,7 +49,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 plt.style.use("dark_background")
-
+map_key = "a4abee84e580a96ff5ba9bd54cd11a8d"
 # Funções de áudio originais
 def generate_tone(frequency, duration_ms, waveform='sine', amplitude=0.5):
     if waveform == 'sine':
