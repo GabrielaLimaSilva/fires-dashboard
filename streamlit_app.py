@@ -510,14 +510,16 @@ with col_right:
                                     ax_map.tick_params(left=False, right=False, top=False, bottom=False)
 
                                     png_file = f"maps_png/intro_{i}.png"
-                                    fig.savefig(png_file, facecolor='#000000', bbox_inches='tight', pad_inches=0)
+                                    fig.savefig(png_file, facecolor='#000000', bbox_inches='tight', pad_inches=0, dpi=200)
                                     plt.close(fig)
 
                                     img = Image.open(png_file)
-                                    img = img.resize((1920, 1080))
+                                    img = img.resize((1920, 1080), Image.Resampling.LANCZOS)
+                                    # Garantir que a imagem seja RGB
+                                    if img.mode != 'RGB':
+                                        img = img.convert('RGB')
                                     img.save(png_file)
                                     images_files.append(png_file)
-
                                 # SEQUÊNCIA PRINCIPAL: Focos de incêndio
                                 for i in range(len(focos_per_day)):
                                     df_day = df_local[df_local['acq_date'] == focos_per_day['acq_date'].iloc[i]]
