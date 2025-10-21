@@ -237,7 +237,6 @@ try:
 except:
     # Fallback para desenvolvimento local - criar arquivo .streamlit/secrets.toml
     map_key = "a4abee84e580a96ff5ba9bd54cd11a8d"
-    st.warning("⚠️ Using default API key. Configure secrets for production!")
 
 
 col1, col2 = st.sidebar.columns(2)
@@ -254,7 +253,7 @@ with col1:
 with col2:
     day_range = st.number_input("Days", value=10, min_value=1, max_value=30)
 
-total_duration_sec = st.sidebar.slider("Duration (sec)", 5, 60, 14, 1)
+total_duration_sec = 1.2*day_range
 
 os.makedirs("maps_png", exist_ok=True)
 
