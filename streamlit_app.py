@@ -255,7 +255,7 @@ with col1:
 with col2:
     longitude_center = st.number_input("Longitude", value=-59.4, step=0.1)
 
-radius_km = st.sidebar.slider("Raio (km)", min_value=50, max_value=1000, value=300, step=50)
+radius_km = st.sidebar.slider("Raio (km)", min_value=50, max_value=1000, value=150, step=50)
 
 st.sidebar.markdown('<div class="sidebar-section"><strong>📅 Dados</strong></div>', unsafe_allow_html=True)
 col1, col2 = st.sidebar.columns(2)
@@ -263,10 +263,10 @@ with col1:
     data_date = st.date_input("Data inicial", value=datetime(2019, 8, 14))
     data_date = data_date.strftime("%Y-%m-%d")
 with col2:
-    day_range = st.number_input("Dias a recuperar", value=3, min_value=1, max_value=30)
+    day_range = st.number_input("Dias a recuperar", value=7, min_value=1, max_value=30)
 
 st.sidebar.markdown('<div class="sidebar-section"><strong>🎵 Áudio</strong></div>', unsafe_allow_html=True)
-total_duration_sec = st.sidebar.slider("Duração total (seg)", min_value=5, max_value=60, value=8, step=1)
+total_duration_sec = st.sidebar.slider("Duração total (seg)", min_value=5, max_value=60, value=14, step=1)
 
 st.sidebar.markdown("---")
 os.makedirs("maps_png", exist_ok=True)
