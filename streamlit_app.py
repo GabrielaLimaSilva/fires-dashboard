@@ -220,8 +220,8 @@ def distance_km(lat1, lon1, lat2, lon2):
     a = np.sin(dlat/2)**2 + np.cos(np.radians(lat1))*np.cos(np.radians(lat2))*np.sin(dlon/2)**2
     return 2 * R * np.arcsin(np.sqrt(a))
 
-TARGET_WIDTH = 1920
-TARGET_HEIGHT = 1080
+TARGET_WIDTH = 1280
+TARGET_HEIGHT = 720
 
 st.markdown('<div class="main-header"><h1>🔥 Hear the Fire</h1><p>Transform fire data into an immersive audiovisual experience</p></div>', unsafe_allow_html=True)
 
@@ -322,14 +322,14 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             images_files = []
             all_days = fires_per_day['acq_date'].tolist()
             n_days = len(fires_per_day)
-            n_fade_frames = 10
-            intro_frames = 30
+            n_fade_frames = 5  # Reduzido de 10 para 5
+            intro_frames = 15  # Reduzido de 30 para 15
             
             status_text.text("🎬 Creating intro animation...")
             for i in range(intro_frames):
                 progress = (i + 1) / intro_frames
                 progress_bar.progress(40 + int(10 * progress))
-                fig = plt.figure(figsize=(20, 15), dpi=200)
+                fig = plt.figure(figsize=(12, 9), dpi=100)  # Reduzido de (20,15) dpi=200
                 fig.patch.set_facecolor('black')
                 gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
                 ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
@@ -368,7 +368,7 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                 for spine in ax_map.spines.values():
                     spine.set_visible(False)
                 png_file = f"maps_png/intro_{i}.png"
-                fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0)
+                fig.savefig(png_file, facecolor='#000000', dpi=80, bbox_inches='tight', pad_inches=0)  # DPI reduzido de 100 para 80
                 plt.close(fig)
                 img = Image.open(png_file).convert("RGB")
                 final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
@@ -390,7 +390,7 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                     frame_progress = (i * n_fade_frames + k) / total_fire_frames
                     progress_bar.progress(50 + int(40 * frame_progress))
                     alpha = (k+1)/n_fade_frames
-                    fig = plt.figure(figsize=(20, 15), dpi=200)
+                    fig = plt.figure(figsize=(12, 9), dpi=100)  # Reduzido de (20,15) dpi=200
                     fig.patch.set_facecolor('black')
                     gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
                     ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
@@ -408,59 +408,48 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                     # VISUALIZAÇÃO CINEMATOGRÁFICA DE FOGO
                     if len(df_day) > 0:
                         # Camada 1: Glow externo (vermelho escuro)
-                        glow_sizes = 600 + 200 * np.sin(alpha * np.pi * 2)
+                        glow_sizes = 400 + 100 * np.sin(alpha * np.pi * 2)  # Reduzido
                         ax_map.scatter(df_day[lon_col], df_day[lat_col], 
                                      c='#8B0000', s=glow_sizes, alpha=0.15 * alpha,
                                      transform=ccrs.PlateCarree())
                         
                         # Camada 2: Halo alaranjado médio
-                        halo_sizes = 400 + 150 * np.sin(alpha * np.pi * 2)
+                        halo_sizes = 250 + 80 * np.sin(alpha * np.pi * 2)  # Reduzido
                         ax_map.scatter(df_day[lon_col], df_day[lat_col], 
                                      c='#FF4500', s=halo_sizes, alpha=0.25 * alpha,
                                      transform=ccrs.PlateCarree())
                         
                         # Camada 3: Core laranja brilhante
-                        core_sizes = 250 + 100 * np.sin(alpha * np.pi * 2)
+                        core_sizes = 150 + 60 * np.sin(alpha * np.pi * 2)  # Reduzido
                         ax_map.scatter(df_day[lon_col], df_day[lat_col], 
                                      c='#FF8C00', s=core_sizes, alpha=0.6 * alpha,
                                      linewidths=0, transform=ccrs.PlateCarree())
                         
                         # Camada 4: Centro amarelo intenso (variação por intensidade)
                         center_colors = plt.cm.YlOrRd(frp_norm * 0.7 + 0.3)
-                        center_sizes = 120 + 80 * np.sin(alpha * np.pi * 3) * (1 + frp_norm)
+                        center_sizes = 80 + 50 * np.sin(alpha * np.pi * 3) * (1 + frp_norm)  # Reduzido
                         ax_map.scatter(df_day[lon_col], df_day[lat_col], 
                                      c=center_colors, s=center_sizes, alpha=0.85 * alpha,
-                                     edgecolors='#FFD700', linewidths=1.5,
+                                     edgecolors='#FFD700', linewidths=1,  # Linewidth reduzido
                                      transform=ccrs.PlateCarree())
                         
                         # Camada 5: Núcleo branco brilhante para focos intensos
                         high_intensity = df_day[df_day['frp'] > df_day['frp'].quantile(0.7)] if 'frp' in df_day.columns else df_day.head(int(len(df_day)*0.3))
                         if len(high_intensity) > 0:
-                            white_sizes = 80 + 60 * np.sin(alpha * np.pi * 4)
+                            white_sizes = 60 + 40 * np.sin(alpha * np.pi * 4)  # Reduzido
                             ax_map.scatter(high_intensity[lon_col], high_intensity[lat_col], 
                                          c='white', s=white_sizes, alpha=0.9 * alpha,
-                                         edgecolors='#FFFF00', linewidths=2,
+                                         edgecolors='#FFFF00', linewidths=1.5,
                                          transform=ccrs.PlateCarree(), marker='*', zorder=10)
                             
-                            # Partículas ascendentes (simulando fagulhas)
-                            if alpha > 0.5:
-                                n_particles = min(len(high_intensity), 20)
-                                particle_offset = 0.05 * (alpha - 0.5) * 2
-                                for idx in range(n_particles):
-                                    row = high_intensity.iloc[idx]
-                                    # Fagulhas subindo
-                                    particle_lat = row[lat_col] + particle_offset * np.random.uniform(0.5, 1.5)
-                                    particle_lon = row[lon_col] + np.random.uniform(-0.02, 0.02)
-                                    ax_map.scatter(particle_lon, particle_lat, 
-                                                 c='#FFD700', s=20, alpha=0.6 * (1 - particle_offset*2),
-                                                 transform=ccrs.PlateCarree(), marker='.', zorder=11)
+                            # Partículas ascendentes (simulando fagulhas) - REMOVIDO para otimizar
                         
-                        # Efeito de pulsação para dar vida
-                        if k % 3 == 0:  # A cada 3 frames, adiciona "explosão"
-                            burst_indices = np.random.choice(len(df_day), size=min(5, len(df_day)), replace=False)
+                        # Efeito de pulsação - reduzido
+                        if k % 2 == 0:  # A cada 2 frames (ao invés de 3)
+                            burst_indices = np.random.choice(len(df_day), size=min(3, len(df_day)), replace=False)  # 3 ao invés de 5
                             burst_points = df_day.iloc[burst_indices]
                             ax_map.scatter(burst_points[lon_col], burst_points[lat_col],
-                                         c='#FF0000', s=800, alpha=0.2,
+                                         c='#FF0000', s=500, alpha=0.2,  # Tamanho reduzido
                                          transform=ccrs.PlateCarree())
                     
                     bar_heights = [fires_per_day.loc[fires_per_day['acq_date']==d,'n_fires'].values[0] if d<=day else 0 for d in all_days]
@@ -484,14 +473,14 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                         spine.set_visible(False)
                     ax_map.tick_params(left=False, right=False, top=False, bottom=False)
                     png_file = f"maps_png/map_{i}_{k}.png"
-                    fig.savefig(png_file, facecolor='#000000', bbox_inches='tight', pad_inches=0)
+                    fig.savefig(png_file, facecolor='#000000', dpi=80, bbox_inches='tight', pad_inches=0)  # DPI reduzido
                     plt.close(fig)
                     img = Image.open(png_file).convert("RGB")
                     final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
                     img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
                     offset = ((TARGET_WIDTH - img.width)//2, (TARGET_HEIGHT - img.height)//2)
                     final_img.paste(img, offset)
-                    final_img.save(png_file)
+                    final_img.save(png_file, quality=85, optimize=True)  # Qualidade reduzida de 95 para 85 + optimize
                     images_files.append(png_file)
             
             status_text.text("🎬 Assembling video...")
