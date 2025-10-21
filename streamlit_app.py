@@ -220,9 +220,9 @@ def distance_km(lat1, lon1, lat2, lon2):
     a = np.sin(dlat/2)**2 + np.cos(np.radians(lat1))*np.cos(np.radians(lat2))*np.sin(dlon/2)**2
     return 2 * R * np.arcsin(np.sqrt(a))
 
-TARGET_WIDTH = 1280
-TARGET_HEIGHT = 720
-figure_size = (25, 18)
+TARGET_WIDTH = 1500
+TARGET_HEIGHT = 844
+figure_size = (16, 9)
 resolution = 200
 st.markdown('<div class="main-header"><h1>🔥 Hear the Fire</h1><p>Transform fire data into an immersive audiovisual experience</p></div>', unsafe_allow_html=True)
 
