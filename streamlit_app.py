@@ -242,6 +242,20 @@ st.markdown("""
     </div>
 """, unsafe_allow_html=True)
 
+st.markdown("""
+    <div class="success-box" style="margin: 20px 0;">
+        <h3 style="color: #ffd700; margin-top: 0; margin-bottom: 10px;">🎵 How the Music is Created</h3>
+        <p style="color: #f5f5f5; line-height: 1.6; margin: 0;">
+            Each day with fire data generates a unique <strong style="color: #ff8c00;">musical chord</strong>. 
+            The <strong style="color: #ff8c00;">intensity of fires</strong> controls the chord's amplitude - more fires create louder, more dramatic sounds. 
+            Notes are selected from a <strong style="color: #ff8c00;">pentatonic scale</strong>, creating a melodic progression that 
+            <strong style="color: #ff8c00;">flows naturally</strong> between days. A subtle <strong style="color: #ff8c00;">humming bass</strong> 
+            adds atmospheric depth, while <strong style="color: #ff8c00;">stereo panning and reverb</strong> create an epic, cinematic soundscape. 
+            The result: a haunting audio representation where you can literally <strong style="color: #ffd700;">hear the fires burning</strong>. 🔥
+        </p>
+    </div>
+""", unsafe_allow_html=True)
+
 # -------------------
 # Sidebar Configuration
 # -------------------
