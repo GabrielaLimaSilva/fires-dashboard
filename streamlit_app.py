@@ -91,35 +91,35 @@ st.markdown("""
 
         .stat-card {
             background: linear-gradient(135deg, rgba(255, 68, 68, 0.15) 0%, rgba(255, 140, 0, 0.1) 100%);
-            padding: 12px;
-            border-radius: 10px;
-            border-left: 4px solid #ff4444;
-            border-top: 2px solid #ff8c00;
-            box-shadow: 0 4px 20px rgba(255, 68, 68, 0.3), inset 0 1px 0 rgba(255, 212, 0, 0.2);
+            padding: 8px 10px;
+            border-radius: 8px;
+            border-left: 3px solid #ff4444;
+            border-top: 1px solid #ff8c00;
+            box-shadow: 0 2px 12px rgba(255, 68, 68, 0.25);
             backdrop-filter: blur(10px);
-            margin-bottom: 10px;
+            margin-bottom: 8px;
             transition: all 0.3s ease;
         }
 
         .stat-card:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 25px rgba(255, 68, 68, 0.4), inset 0 1px 0 rgba(255, 212, 0, 0.3);
+            transform: translateY(-1px);
+            box-shadow: 0 4px 16px rgba(255, 68, 68, 0.35);
         }
 
         .metric-label {
-            font-size: 11px;
+            font-size: 10px;
             color: #ff8c00;
             font-weight: 600;
             text-transform: uppercase;
-            letter-spacing: 1px;
+            letter-spacing: 0.5px;
         }
 
         .metric-value {
-            font-size: 22px;
+            font-size: 18px;
             color: #ffd700;
-            font-weight: 800;
-            margin: 6px 0;
-            text-shadow: 0 0 10px rgba(255, 212, 0, 0.5);
+            font-weight: 700;
+            margin: 4px 0;
+            text-shadow: 0 0 8px rgba(255, 212, 0, 0.4);
         }
 
         .success-box {
@@ -169,16 +169,17 @@ st.markdown("""
             background: linear-gradient(135deg, #ff4444 0%, #ff8c00 100%) !important;
             color: white !important;
             border: none !important;
-            padding: 10px 20px !important;
-            border-radius: 8px !important;
+            padding: 8px 16px !important;
+            border-radius: 6px !important;
             font-weight: 600 !important;
-            box-shadow: 0 4px 15px rgba(255, 68, 68, 0.4) !important;
+            font-size: 13px !important;
+            box-shadow: 0 3px 12px rgba(255, 68, 68, 0.4) !important;
             transition: all 0.3s ease !important;
         }
 
         .stButton>button:hover {
-            transform: translateY(-2px) !important;
-            box-shadow: 0 6px 20px rgba(255, 68, 68, 0.6) !important;
+            transform: translateY(-1px) !important;
+            box-shadow: 0 4px 16px rgba(255, 68, 68, 0.5) !important;
         }
 
         .sidebar-section {
@@ -243,15 +244,10 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.markdown("""
-    <div class="success-box" style="margin: 20px 0;">
-        <h3 style="color: #ffd700; margin-top: 0; margin-bottom: 10px;">🎵 How the Music is Created</h3>
-        <p style="color: #f5f5f5; line-height: 1.6; margin: 0;">
-            Each day with fire data generates a unique <strong style="color: #ff8c00;">musical chord</strong>. 
-            The <strong style="color: #ff8c00;">intensity of fires</strong> controls the chord's amplitude - more fires create louder, more dramatic sounds. 
-            Notes are selected from a <strong style="color: #ff8c00;">pentatonic scale</strong>, creating a melodic progression that 
-            <strong style="color: #ff8c00;">flows naturally</strong> between days. A subtle <strong style="color: #ff8c00;">humming bass</strong> 
-            adds atmospheric depth, while <strong style="color: #ff8c00;">stereo panning and reverb</strong> create an epic, cinematic soundscape. 
-            The result: a haunting audio representation where you can literally <strong style="color: #ffd700;">hear the fires burning</strong>. 🔥
+    <div class="success-box" style="margin: 15px 0; padding: 10px;">
+        <p style="color: #f5f5f5; line-height: 1.5; margin: 0; font-size: 14px;">
+            🎵 <strong style="color: #ffd700;">How it works:</strong> Each day generates a unique chord. 
+            More fires = louder sounds. Pentatonic scale creates natural melodic flow. <strong style="color: #ffd700;">Hear the fires burning.</strong> 🔥
         </p>
     </div>
 """, unsafe_allow_html=True)
@@ -291,7 +287,7 @@ os.makedirs("maps_png", exist_ok=True)
 # -------------------
 # Main Content - Split Layout
 # -------------------
-col_left, col_right = st.columns([1, 1], gap="medium")
+col_left, col_right = st.columns([1, 2], gap="medium")
 
 # LEFT SIDE - Controls & Stats
 with col_left:
@@ -597,14 +593,24 @@ with col_right:
                                             for d in all_days
                                         ]
                                         colors = ['orangered' if d<=day else 'gray' for d in all_days]
-                                        ax_bar.bar(all_days, bar_heights, color=colors, alpha=0.8)
-                                        ax_bar.tick_params(colors='white', labelsize=14)
-                                        ax_bar.set_ylabel('Number of Fires', color='white', fontsize=16)
-                                        ax_bar.set_xlabel('Date', color='white', fontsize=16)
+                                        bars = ax_bar.bar(all_days, bar_heights, color=colors, alpha=0.9, edgecolor='white', linewidth=0.5)
+                                        
+                                        # Add gradient effect to bars
+                                        for bar, height in zip(bars, bar_heights):
+                                            if height > 0:
+                                                bar.set_linewidth(1.5)
+                                                bar.set_edgecolor('#ffd700')
+                                        
+                                        ax_bar.tick_params(colors='white', labelsize=12)
+                                        ax_bar.set_ylabel('Number of Fires', color='white', fontsize=14, fontweight='bold')
+                                        ax_bar.set_xlabel('Date', color='white', fontsize=14, fontweight='bold')
                                         ax_bar.set_ylim(0, fires_per_day['n_fires'].max()*1.2)
+                                        ax_bar.grid(axis='y', alpha=0.2, linestyle='--', color='gray')
+                                        ax_bar.set_facecolor('#0a0a0a')
                                         plt.setp(ax_bar.get_xticklabels(), rotation=45, ha='right')
                                         for spine in ax_bar.spines.values():
-                                            spine.set_visible(False)
+                                            spine.set_color('#ff8c00')
+                                            spine.set_linewidth(1.5)
                                         for spine in ax_map.spines.values():
                                             spine.set_visible(False)
                                         ax_map.tick_params(left=False, right=False, top=False, bottom=False)
