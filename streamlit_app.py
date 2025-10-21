@@ -329,7 +329,7 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             for i in range(intro_frames):
                 progress = (i + 1) / intro_frames
                 progress_bar.progress(40 + int(10 * progress))
-                fig = plt.figure(figsize= figure_size , dpi=resolution  # Reduzido de (20,15) dpi=200
+                fig = plt.figure(figsize= figure_size , dpi=resolution)  # Reduzido de (20,15) dpi=200
                 fig.patch.set_facecolor('black')
                 gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
                 ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
