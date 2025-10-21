@@ -7,4 +7,4 @@ pydub
 moviepy
 cartopy
 Pillow
-pydub-stubs
+pyaudioop-lts
