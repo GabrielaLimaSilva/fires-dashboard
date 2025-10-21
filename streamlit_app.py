@@ -49,7 +49,7 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 plt.style.use("dark_background")
-map_key = "a4abee84e580a96ff5ba9bd54cd11a8d"
+
 # Funções de áudio originais
 def generate_tone(frequency, duration_ms, waveform='sine', amplitude=0.5):
     if waveform == 'sine':
@@ -220,10 +220,9 @@ def distance_km(lat1, lon1, lat2, lon2):
     a = np.sin(dlat/2)**2 + np.cos(np.radians(lat1))*np.cos(np.radians(lat2))*np.sin(dlon/2)**2
     return 2 * R * np.arcsin(np.sqrt(a))
 
-TARGET_WIDTH = 1500
-TARGET_HEIGHT = 844
-figure_size = (16, 9)
-resolution = 200
+TARGET_WIDTH = 1280
+TARGET_HEIGHT = 720
+
 st.markdown('<div class="main-header"><h1>🔥 Hear the Fire</h1><p>Transform fire data into an immersive audiovisual experience</p></div>', unsafe_allow_html=True)
 
 # BARRA DE PROGRESSO NO TOPO - criar placeholders sempre
@@ -231,6 +230,15 @@ progress_placeholder = st.empty()
 status_placeholder = st.empty()
 
 st.sidebar.markdown("### ⚙️ Settings")
+
+# API Key segura - usar secrets do Streamlit
+try:
+    map_key = st.secrets["NASA_FIRMS_KEY"]
+except:
+    # Fallback para desenvolvimento local - criar arquivo .streamlit/secrets.toml
+    map_key = "a4abee84e580a96ff5ba9bd54cd11a8d"
+    st.warning("⚠️ Using default API key. Configure secrets for production!")
+
 
 col1, col2 = st.sidebar.columns(2)
 with col1:
@@ -246,7 +254,7 @@ with col1:
 with col2:
     day_range = st.number_input("Days", value=10, min_value=1, max_value=30)
 
-total_duration_sec = 1.4*day_range
+total_duration_sec = st.sidebar.slider("Duration (sec)", 5, 60, 14, 1)
 
 os.makedirs("maps_png", exist_ok=True)
 
@@ -329,7 +337,7 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             for i in range(intro_frames):
                 progress = (i + 1) / intro_frames
                 progress_bar.progress(40 + int(10 * progress))
-                fig = plt.figure(figsize= figure_size , dpi=resolution)  # Reduzido de (20,15) dpi=200
+                fig = plt.figure(figsize=(16, 9), dpi=100)  # Aumentado para 16:9
                 fig.patch.set_facecolor('black')
                 gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
                 ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
@@ -368,14 +376,12 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                 for spine in ax_map.spines.values():
                     spine.set_visible(False)
                 png_file = f"maps_png/intro_{i}.png"
-                fig.savefig(png_file, facecolor='#000000', dpi=80, bbox_inches='tight', pad_inches=0)  # DPI reduzido de 100 para 80
+                fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0.1)  # DPI 100 + padding mínimo
                 plt.close(fig)
                 img = Image.open(png_file).convert("RGB")
-                final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
-                img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
-                offset = ((TARGET_WIDTH - img.width)//2, (TARGET_HEIGHT - img.height)//2)
-                final_img.paste(img, offset)
-                final_img.save(png_file, quality=95)
+                # Redimensionar para preencher completamente
+                img = img.resize((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
+                img.save(png_file, quality=85, optimize=True)
                 images_files.append(png_file)
             
             status_text.text("🔥 Rendering fire visualizations...")
@@ -390,7 +396,7 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                     frame_progress = (i * n_fade_frames + k) / total_fire_frames
                     progress_bar.progress(50 + int(40 * frame_progress))
                     alpha = (k+1)/n_fade_frames
-                    fig = plt.figure(figsize= figure_size , dpi=resolution)  # Reduzido de (20,15) dpi=200
+                    fig = plt.figure(figsize=(16, 9), dpi=100)  # 16:9 aspect ratio
                     fig.patch.set_facecolor('black')
                     gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
                     ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
@@ -473,14 +479,12 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                         spine.set_visible(False)
                     ax_map.tick_params(left=False, right=False, top=False, bottom=False)
                     png_file = f"maps_png/map_{i}_{k}.png"
-                    fig.savefig(png_file, facecolor='#000000', dpi=80, bbox_inches='tight', pad_inches=0)  # DPI reduzido
+                    fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0.1)  # DPI 100 + padding
                     plt.close(fig)
                     img = Image.open(png_file).convert("RGB")
-                    final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
-                    img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
-                    offset = ((TARGET_WIDTH - img.width)//2, (TARGET_HEIGHT - img.height)//2)
-                    final_img.paste(img, offset)
-                    final_img.save(png_file, quality=85, optimize=True)  # Qualidade reduzida de 95 para 85 + optimize
+                    # Redimensionar mantendo aspect ratio e preenchendo o frame
+                    img = img.resize((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
+                    img.save(png_file, quality=85, optimize=True)
                     images_files.append(png_file)
             
             status_text.text("🎬 Assembling video...")
@@ -494,7 +498,7 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             frame_durations = [intro_frame_duration] * intro_frames + [fires_frame_duration] * fires_frame_count
             
             clip = ImageSequenceClip(images_files, durations=frame_durations)
-            clip = clip.on_color(size=(1920,1080), color=(0,0,0))
+            clip = clip.on_color(size=(1280, 720), color=(0,0,0))  # Resolução ajustada
             audio_clip = AudioFileClip("fires_sound.mp3")
             
             def make_frame(t):
