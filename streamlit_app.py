@@ -222,7 +222,8 @@ def distance_km(lat1, lon1, lat2, lon2):
 
 TARGET_WIDTH = 1280
 TARGET_HEIGHT = 720
-
+figure_size = (25, 18)
+resolution = 200
 st.markdown('<div class="main-header"><h1>🔥 Hear the Fire</h1><p>Transform fire data into an immersive audiovisual experience</p></div>', unsafe_allow_html=True)
 
 # BARRA DE PROGRESSO NO TOPO - criar placeholders sempre
@@ -328,7 +329,7 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             for i in range(intro_frames):
                 progress = (i + 1) / intro_frames
                 progress_bar.progress(40 + int(10 * progress))
-                fig = plt.figure(figsize= (20,15) , dpi=100)  # Reduzido de (20,15) dpi=200
+                fig = plt.figure(figsize= figure_size , dpi=resolution  # Reduzido de (20,15) dpi=200
                 fig.patch.set_facecolor('black')
                 gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
                 ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
@@ -389,7 +390,7 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                     frame_progress = (i * n_fade_frames + k) / total_fire_frames
                     progress_bar.progress(50 + int(40 * frame_progress))
                     alpha = (k+1)/n_fade_frames
-                    fig = plt.figure(figsize= (20,15) , dpi=100)  # Reduzido de (20,15) dpi=200
+                    fig = plt.figure(figsize= figure_size , dpi=resolution)  # Reduzido de (20,15) dpi=200
                     fig.patch.set_facecolor('black')
                     gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
                     ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
