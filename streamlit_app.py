@@ -7,9 +7,9 @@ from io import StringIO
 import matplotlib.pyplot as plt
 from matplotlib import gridspec
 from pydub import AudioSegment
-from pydub.generators import Sine
+from pydub.generators import Sine, Square, Sawtooth, Triangle
 import os
-from moviepy.editor import ImageSequenceClip, AudioFileClip
+from moviepy.editor import ImageSequenceClip, AudioFileClip, concatenate_audioclips, AudioClip
 import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 from PIL import Image
@@ -195,6 +195,276 @@ st.markdown("""
 plt.style.use("dark_background")
 
 # -------------------
+# IMPROVED AUDIO FUNCTIONS
+# -------------------
+
+def generate_tone(frequency, duration_ms, waveform='sine', amplitude=0.5):
+    """
+    Gera diferentes timbres baseados na forma de onda.
+    """
+    if waveform == 'sine':
+        tone = Sine(frequency).to_audio_segment(duration=duration_ms)
+    elif waveform == 'square':
+        tone = Square(frequency).to_audio_segment(duration=duration_ms)
+    elif waveform == 'sawtooth':
+        tone = Sawtooth(frequency).to_audio_segment(duration=duration_ms)
+    elif waveform == 'triangle':
+        tone = Triangle(frequency).to_audio_segment(duration=duration_ms)
+    elif waveform == 'complex':
+        tone = Sine(frequency).to_audio_segment(duration=duration_ms)
+        tone = tone.overlay(Sine(frequency * 2).to_audio_segment(duration=duration_ms) - 12)
+        tone = tone.overlay(Sine(frequency * 3).to_audio_segment(duration=duration_ms) - 18)
+    else:
+        tone = Sine(frequency).to_audio_segment(duration=duration_ms)
+    
+    tone = tone.apply_gain(-40 + amplitude * 35)
+    return tone
+
+
+def create_ambient_layer(duration_ms, intensity=0.3):
+    """
+    Cria uma camada de som ambiente que evolui lentamente.
+    """
+    drone1 = Sine(55).to_audio_segment(duration=duration_ms)
+    drone2 = Sine(82.4).to_audio_segment(duration=duration_ms)
+    
+    noise = AudioSegment.silent(duration=duration_ms)
+    for _ in range(5):
+        freq = np.random.uniform(100, 300)
+        noise_tone = Sine(freq).to_audio_segment(duration=duration_ms)
+        noise_tone = noise_tone.apply_gain(-50 + np.random.uniform(-5, 5))
+        noise = noise.overlay(noise_tone)
+    
+    ambient = drone1.apply_gain(-35 + intensity * 15)
+    ambient = ambient.overlay(drone2.apply_gain(-38 + intensity * 15))
+    ambient = ambient.overlay(noise.apply_gain(-45))
+    
+    ambient = ambient.fade_in(int(duration_ms * 0.3)).fade_out(int(duration_ms * 0.3))
+    
+    return ambient
+
+
+def epic_chord_v2(frequencies, duration_ms, fire_intensity=0.5, day_index=0, total_days=1):
+    """
+    Versão melhorada dos acordes com mais diferenciação e impacto.
+    """
+    chord = AudioSegment.silent(duration=duration_ms)
+    
+    if fire_intensity < 0.3:
+        waveforms = ['sine', 'sine', 'triangle', 'sine']
+        attack_time = 0.3
+        release_time = 0.7
+    elif fire_intensity < 0.6:
+        waveforms = ['sine', 'triangle', 'complex', 'sine']
+        attack_time = 0.2
+        release_time = 0.6
+    else:
+        waveforms = ['complex', 'sawtooth', 'complex', 'square']
+        attack_time = 0.1
+        release_time = 0.5
+    
+    pan_positions = [-0.6, -0.2, 0.2, 0.6, 0.0]
+    
+    for i, freq in enumerate(frequencies):
+        waveform = waveforms[i % len(waveforms)]
+        
+        base_amplitude = 0.4 + fire_intensity * 0.4
+        if i == 0:
+            amplitude = base_amplitude * 1.2
+        else:
+            amplitude = base_amplitude * (0.7 + i * 0.1)
+        
+        note = generate_tone(freq, duration_ms, waveform, amplitude)
+        
+        fade_in_ms = int(duration_ms * attack_time)
+        fade_out_ms = int(duration_ms * release_time)
+        note = note.fade_in(fade_in_ms).fade_out(fade_out_ms)
+        
+        pan = pan_positions[i % len(pan_positions)]
+        note = note.pan(pan)
+        
+        chord = chord.overlay(note)
+    
+    # Efeitos especiais
+    if fire_intensity > 0.4:
+        num_echoes = 2 if fire_intensity > 0.7 else 1
+        for i in range(num_echoes):
+            delay_ms = int(duration_ms * 0.3 * (i + 1))
+            decay_db = -(8 + i * 6)
+            chord = chord.overlay(chord + decay_db, position=delay_ms)
+    
+    if fire_intensity > 0.5:
+        attack_freq = frequencies[0] * 4
+        attack = Sine(attack_freq).to_audio_segment(duration=50)
+        attack = attack.apply_gain(-25 + fire_intensity * 10)
+        attack = attack.fade_out(40)
+        chord = chord.overlay(attack, position=0)
+    
+    if fire_intensity > 0.6:
+        sub_freq = frequencies[0] / 2
+        sub_bass = Sine(sub_freq).to_audio_segment(duration=duration_ms)
+        sub_bass = sub_bass.apply_gain(-35 + fire_intensity * 10)
+        sub_bass = sub_bass.fade_in(100).fade_out(int(duration_ms * 0.6))
+        chord = chord.overlay(sub_bass)
+    
+    return chord
+
+
+def create_transition(duration_ms, transition_type='rise', intensity=0.5):
+    """
+    Cria efeitos de transição entre dias.
+    """
+    if transition_type == 'silence':
+        return AudioSegment.silent(duration=duration_ms)
+    
+    elif transition_type == 'rise':
+        start_freq = 100
+        end_freq = 400 + intensity * 400
+        sweep = AudioSegment.silent(duration=duration_ms)
+        
+        steps = 20
+        for i in range(steps):
+            progress = i / steps
+            freq = start_freq + (end_freq - start_freq) * progress
+            segment_duration = duration_ms // steps
+            tone = Sine(freq).to_audio_segment(duration=segment_duration)
+            tone = tone.apply_gain(-35 + intensity * 10)
+            sweep = sweep.overlay(tone, position=i * segment_duration)
+        
+        return sweep.fade_out(int(duration_ms * 0.3))
+    
+    elif transition_type == 'fall':
+        start_freq = 800 - intensity * 300
+        end_freq = 100
+        sweep = AudioSegment.silent(duration=duration_ms)
+        
+        steps = 15
+        for i in range(steps):
+            progress = i / steps
+            freq = start_freq - (start_freq - end_freq) * progress
+            segment_duration = duration_ms // steps
+            tone = Sine(freq).to_audio_segment(duration=segment_duration)
+            tone = tone.apply_gain(-35 + intensity * 10)
+            sweep = sweep.overlay(tone, position=i * segment_duration)
+        
+        return sweep.fade_in(int(duration_ms * 0.3))
+    
+    elif transition_type == 'impact':
+        impact = AudioSegment.silent(duration=duration_ms)
+        
+        low = Sine(50).to_audio_segment(duration=duration_ms)
+        low = low.apply_gain(-25 + intensity * 15)
+        low = low.fade_out(int(duration_ms * 0.8))
+        
+        mid = Square(200).to_audio_segment(duration=duration_ms // 2)
+        mid = mid.apply_gain(-30 + intensity * 10)
+        mid = mid.fade_out(int(duration_ms * 0.4))
+        
+        high = Sine(1200).to_audio_segment(duration=duration_ms // 4)
+        high = high.apply_gain(-35 + intensity * 15)
+        high = high.fade_out(int(duration_ms * 0.3))
+        
+        impact = impact.overlay(low).overlay(mid).overlay(high)
+        return impact
+
+
+def compose_fire_symphony(fires_per_day_df, total_duration_sec=14):
+    """
+    Compõe a trilha sonora completa com todas as melhorias.
+    """
+    n_days = len(fires_per_day_df)
+    duration_per_day_ms = int((total_duration_sec * 1000) / n_days)
+    
+    transition_ms = min(100, duration_per_day_ms // 4)
+    chord_ms = duration_per_day_ms - transition_ms
+    
+    notes_penta = [
+        65.41, 73.42, 82.41, 87.31, 98.00, 110.00,
+        130.81, 146.83, 164.81, 174.61, 196.00, 220.00,
+        261.63, 293.66, 329.63, 349.23, 392.00, 440.00,
+        523.25, 587.33
+    ]
+    
+    max_fires = fires_per_day_df['n_fires'].max()
+    min_fires = fires_per_day_df['n_fires'].min()
+    mean_fires = fires_per_day_df['n_fires'].mean()
+    
+    ambient_layer = create_ambient_layer(
+        total_duration_sec * 1000, 
+        intensity=min(0.5, mean_fires / max_fires)
+    )
+    
+    melody_segments = []
+    last_note_idx = np.random.randint(4, 10)
+    last_intensity = 0.3
+    
+    for day_idx, (day, n_fires) in enumerate(fires_per_day_df.values):
+        intensity = np.interp(n_fires, [min_fires, max_fires], [0.2, 0.95])
+        
+        intensity_change = intensity - last_intensity
+        
+        if intensity_change > 0.3:
+            shift = np.random.randint(3, 7)
+        elif intensity_change > 0.1:
+            shift = np.random.randint(1, 4)
+        elif intensity_change < -0.3:
+            shift = np.random.randint(-7, -3)
+        elif intensity_change < -0.1:
+            shift = np.random.randint(-4, -1)
+        else:
+            shift = np.random.randint(-2, 3)
+        
+        note_idx = np.clip(last_note_idx + shift, 2, len(notes_penta) - 5)
+        
+        f_base = notes_penta[note_idx]
+        
+        if intensity < 0.4:
+            intervals = [1, 1.25, 1.5]
+        elif intensity < 0.7:
+            intervals = [1, 1.25, 1.5, 1.875]
+        else:
+            intervals = [1, 1.125, 1.33, 1.5, 2]
+        
+        frequencies = [f_base * x for x in intervals]
+        
+        chord = epic_chord_v2(
+            frequencies, 
+            chord_ms, 
+            fire_intensity=intensity,
+            day_index=day_idx,
+            total_days=n_days
+        )
+        
+        melody_segments.append(chord)
+        
+        is_peak = (day_idx > 0 and day_idx < n_days - 1 and 
+                   n_fires > fires_per_day_df.iloc[day_idx - 1]['n_fires'] and
+                   n_fires > fires_per_day_df.iloc[day_idx + 1]['n_fires'] and
+                   intensity > 0.7)
+        
+        if is_peak:
+            transition = create_transition(transition_ms, 'impact', intensity)
+        elif intensity_change > 0.2:
+            transition = create_transition(transition_ms, 'rise', intensity)
+        elif intensity_change < -0.2:
+            transition = create_transition(transition_ms, 'fall', intensity)
+        else:
+            transition = AudioSegment.silent(duration=transition_ms)
+        
+        melody_segments.append(transition)
+        
+        last_note_idx = note_idx
+        last_intensity = intensity
+    
+    melody = sum(melody_segments)
+    final_mix = melody.overlay(ambient_layer)
+    final_mix = final_mix.fade_in(500).fade_out(1000)
+    final_mix = final_mix.normalize()
+    
+    return final_mix
+
+
+# -------------------
 # Helper Functions
 # -------------------
 def distance_km(lat1, lon1, lat2, lon2):
@@ -204,29 +474,6 @@ def distance_km(lat1, lon1, lat2, lon2):
     a = np.sin(dlat/2)**2 + np.cos(np.radians(lat1))*np.cos(np.radians(lat2))*np.sin(dlon/2)**2
     return 2 * R * np.arcsin(np.sqrt(a))
 
-def humming(frequency, duration_ms, amplitude=0.2):
-    humming_sound = Sine(frequency).to_audio_segment(duration=duration_ms)
-    humming_sound = humming_sound.fade_in(int(duration_ms*0.05)).fade_out(int(duration_ms*0.05))
-    humming_sound = humming_sound.apply_gain(-30 + amplitude*20)
-    return humming_sound
-
-def epic_chord(frequencies, duration_ms, amplitude=0.5):
-    chord = AudioSegment.silent(duration=duration_ms)
-    pan_positions = [-0.4, 0.4, -0.2, 0.2, 0.0]
-    note_cache = {}
-    for f in frequencies:
-        note = Sine(f).to_audio_segment(duration=duration_ms)
-        note_cache[f] = note
-    for i, f in enumerate(frequencies):
-        note = note_cache[f]
-        note = note.fade_in(int(duration_ms*0.2)).fade_out(int(duration_ms*0.8))
-        note = note.apply_gain(-40 + amplitude*35)
-        note = note.pan(pan_positions[i % len(pan_positions)])
-        chord = chord.overlay(note)
-    for i in range(2):
-        delay = int(duration_ms * 0.5 * (i+1))
-        chord = chord.overlay(chord - (10 + i*5), position=delay)
-    return chord
 
 TARGET_WIDTH = 1920
 TARGET_HEIGHT = 1080
@@ -246,8 +493,8 @@ st.markdown("""
 st.markdown("""
     <div class="success-box" style="margin: 15px 0; padding: 10px;">
         <p style="color: #f5f5f5; line-height: 1.5; margin: 0; font-size: 14px;">
-            🎵 <strong style="color: #ffd700;">How it works:</strong> Each day generates a unique chord. 
-            More fires = louder sounds. Pentatonic scale creates natural melodic flow. <strong style="color: #ffd700;">Hear the fires burning.</strong> 🔥
+            🎵 <strong style="color: #ffd700;">How it works:</strong> Each day generates a unique chord with dynamic timbre. 
+            More fires = louder, richer sounds with dramatic effects. Intelligent transitions react to intensity changes. <strong style="color: #ffd700;">Hear the fires burning.</strong> 🔥
         </p>
     </div>
 """, unsafe_allow_html=True)
@@ -258,7 +505,6 @@ st.markdown("""
 st.sidebar.markdown("### ⚙️ Settings")
 st.sidebar.markdown("---")
 
-# Fixed API Key (not shown on dashboard)
 map_key = "aa8b33fef53700c18bce394211eeb2e7"
 
 st.sidebar.markdown('<div class="sidebar-section"><strong>📍 Location</strong></div>', unsafe_allow_html=True)
@@ -289,7 +535,6 @@ os.makedirs("maps_png", exist_ok=True)
 # -------------------
 col_left, col_right = st.columns([1, 2], gap="medium")
 
-# LEFT SIDE - Controls & Stats
 with col_left:
     st.markdown("### 📊 Parameter Summary")
 
@@ -326,7 +571,6 @@ with col_left:
     if st.button("🔥 GENERATE VIDEO + MUSIC", use_container_width=True, key="generate_btn"):
         st.session_state['generate_clicked'] = True
 
-# RIGHT SIDE - Video & Results
 with col_right:
     if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
         with st.spinner("⏳ Processing data... This operation may take a few minutes"):
@@ -341,11 +585,8 @@ with col_right:
                         st.error(f"❌ Error fetching data: {response.status_code}")
                     else:
                         df = pd.read_csv(StringIO(response.text))
-
-                        # Normalize column names
                         df.columns = df.columns.str.strip().str.lower()
 
-                        # Check which latitude/longitude columns exist
                         lat_col = None
                         lon_col = None
 
@@ -365,13 +606,11 @@ with col_right:
                         if df_local.empty:
                             st.warning("⚠️ No fires found in this area and period.")
                         else:
-                            # Statistics
                             fires_per_day = df_local.groupby('acq_date').size().reset_index(name='n_fires')
                             total_fires = len(df_local)
                             avg_fires_per_day = df_local.groupby('acq_date').size().mean()
                             max_fires_day = fires_per_day['n_fires'].max()
 
-                            # Display Stats in left column
                             with col_left:
                                 st.markdown("### 📈 Data Analysis")
 
@@ -403,65 +642,33 @@ with col_right:
                                     </div>
                                 """, unsafe_allow_html=True)
 
-                            # Video processing
                             with st.status("🎬 Generating artifacts...") as status:
                                 status.update(label="🎵 Creating soundtrack...", state="running")
 
                                 all_days = fires_per_day['acq_date'].tolist()
                                 n_days = len(fires_per_day)
-                                duration_per_day_ms = int((total_duration_sec * 1000) / n_days)
-                                pause_ms = 50
-                                chord_ms = duration_per_day_ms - pause_ms
                                 n_fade_frames = 10
 
-                                # Music
-                                notes_penta = [130.81, 146.83, 164.81, 174.61, 196.00, 220.00,
-                                               246.94, 261.63, 293.66, 329.63, 349.23, 392.00, 440.00, 493.88]
-                                melody_segments = []
-                                max_fires = fires_per_day['n_fires'].max()
-                                min_fires = fires_per_day['n_fires'].min()
-                                last_note_idx = np.random.randint(1, len(notes_penta)-4)
-
-                                for day, n_fires in fires_per_day.values:
-                                    amplitude = np.interp(n_fires, [min_fires, max_fires], [0.3, 0.7])
-                                    shift = np.random.randint(-3, 4)
-                                    note_idx = np.clip(last_note_idx + shift, 1, len(notes_penta)-4)
-                                    last_note_idx = note_idx
-                                    f_base = notes_penta[note_idx]
-                                    intervals = [1, 1.25, 1.5, 2]
-                                    frequencies = [f_base*x for x in intervals]
-                                    chord = epic_chord(frequencies, chord_ms, amplitude)
-                                    melody_segments.append(chord)
-                                    melody_segments.append(AudioSegment.silent(duration=pause_ms))
-
-                                melody = sum(melody_segments)
-                                melody = melody.overlay(humming(130.81, len(melody)))
+                                # IMPROVED MUSIC GENERATION
+                                melody = compose_fire_symphony(fires_per_day, total_duration_sec)
                                 file_name = "fires_epic_sound.mp3"
                                 melody.export(file_name, format="mp3", bitrate="192k")
                                 st.session_state['mp3_file'] = file_name
 
                                 status.update(label="🗺️ Generating maps...", state="running")
 
-                                # Map
                                 lon_min = longitude_center - radius_km/100
                                 lon_max = longitude_center + radius_km/100
                                 lat_min = latitude_center - radius_km/100
                                 lat_max = latitude_center + radius_km/100
                                 images_files = []
                                 
-                                # --- INTRODUCTION ---
                                 intro_frames = 30
-                                images_files = []
                                 
                                 for i in range(intro_frames):
                                     progress = (i + 1) / intro_frames
                                 
                                     fig = plt.figure(figsize=(20, 15), dpi=200)
-                                    fig.patch.set_facecolor('black')
-                                    gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
-                                    ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
-                                    ax_bar = fig.add_subplot(gs[1])
-                                
                                     fig.patch.set_facecolor('#000000')
                                     ax_map.set_facecolor('black')
                                     ax_bar.set_facecolor('black')
@@ -476,7 +683,6 @@ with col_right:
                                     ax_map.plot(longitude_center, latitude_center, 'ro', markersize=15,
                                                 transform=ccrs.PlateCarree(), alpha=0.8)
                                 
-                                    # Growing circle
                                     current_radius_km = radius_km * progress
                                     lat_deg_radius = current_radius_km / 111
                                     lon_deg_radius = current_radius_km / (111 * np.cos(np.radians(latitude_center)))
@@ -488,7 +694,6 @@ with col_right:
                                     ax_map.plot(lon_circle, lat_circle, 'r-', linewidth=2,
                                                 transform=ccrs.PlateCarree(), alpha=0.7)
                                 
-                                    # Line from center to edge (last frames)
                                     if progress > 0.7:
                                         lat_end = latitude_center + lat_deg_radius * np.sin(np.pi/4)
                                         lon_end = longitude_center + lon_deg_radius * np.cos(np.pi/4)
@@ -503,7 +708,6 @@ with col_right:
                                                     transform=ccrs.PlateCarree(), ha='center', va='center',
                                                     bbox=dict(boxstyle="round,pad=0.3", facecolor='red', alpha=0.7))
                                 
-                                    # Empty lower subplot
                                     ax_bar.set_facecolor('black')
                                     ax_bar.set_xlim(0, 1)
                                     ax_bar.set_ylim(0, 1)
@@ -518,7 +722,6 @@ with col_right:
                                     fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0)
                                     plt.close(fig)
                                 
-                                    # --- FORCE RGB and exact size 1920x1080 ---
                                     img = Image.open(png_file).convert("RGB")
                                     final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
                                     img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
@@ -526,9 +729,6 @@ with col_right:
                                     final_img.paste(img, offset)
                                     final_img.save(png_file, quality=95)
                                     images_files.append(png_file)
-                                
-                                # --- MAIN LOOP: FIRE SPOTS ---
-                                n_fade_frames = 10
                                 
                                 for i, (day, n_fires) in enumerate(fires_per_day.values):
                                     df_day = df_local[df_local['acq_date'] == day]
@@ -556,7 +756,6 @@ with col_right:
                                         ax_map.set_xticks([])
                                         ax_map.set_yticks([])
                                 
-                                        # Fire spots
                                         scatter = ax_map.scatter(
                                             df_day[lon_col],
                                             df_day[lat_col],
@@ -570,7 +769,6 @@ with col_right:
                                             marker='o'
                                         )
                                 
-                                        # Glow effects
                                         if len(df_day) > 0:
                                             high_intensity = df_day[df_day['frp'] > df_day['frp'].quantile(0.7)] if 'frp' in df_day.columns else df_day
                                             if len(high_intensity) > 0:
@@ -586,7 +784,6 @@ with col_right:
                                                     marker='*'
                                                 )
                                 
-                                        # Timeline bar
                                         bar_heights = [
                                             fires_per_day.loc[fires_per_day['acq_date']==d,'n_fires'].values[0]
                                             if d<=day else 0
@@ -595,7 +792,6 @@ with col_right:
                                         colors = ['orangered' if d<=day else 'gray' for d in all_days]
                                         bars = ax_bar.bar(all_days, bar_heights, color=colors, alpha=0.9, edgecolor='white', linewidth=0.5)
                                         
-                                        # Add gradient effect to bars
                                         for bar, height in zip(bars, bar_heights):
                                             if height > 0:
                                                 bar.set_linewidth(1.5)
@@ -619,7 +815,6 @@ with col_right:
                                         fig.savefig(png_file, facecolor='#000000', bbox_inches='tight', pad_inches=0)
                                         plt.close(fig)
                                 
-                                        # --- FORCE RGB and exact size 1920x1080 ---
                                         img = Image.open(png_file).convert("RGB")
                                         final_img = Image.new("RGB", (TARGET_WIDTH, TARGET_HEIGHT), (0,0,0))
                                         img.thumbnail((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
@@ -630,33 +825,25 @@ with col_right:
 
                                 status.update(label="🎬 Compiling video...", state="running")
 
-                                # Adjust durations - faster intro, fires synced with music
-                                intro_duration = 4.0  # 4 seconds for introduction (silent)
-                                fires_duration = total_duration_sec  # Music duration for fire frames
+                                intro_duration = 4.0
+                                fires_duration = total_duration_sec
 
                                 intro_frame_duration = intro_duration / intro_frames
                                 fires_frame_count = len(images_files) - intro_frames
                                 fires_frame_duration = fires_duration / fires_frame_count if fires_frame_count > 0 else 0.1
 
-                                # Create frame durations list
                                 frame_durations = [intro_frame_duration] * intro_frames + [fires_frame_duration] * fires_frame_count
 
-                                # Create video clip
                                 clip = ImageSequenceClip(images_files, durations=frame_durations)
                                 clip = clip.on_color(size=(1920,1080), color=(0,0,0))
                                 
-                                # Add audio ONLY to fire frames (starting after intro)
                                 audio_clip = AudioFileClip(file_name)
                                 
-                                # Create silent audio for intro
-                                from moviepy.editor import concatenate_audioclips, AudioClip
-                                
                                 def make_frame(t):
-                                    return [0, 0]  # Stereo silence
+                                    return [0, 0]
                                 
                                 silent_audio = AudioClip(make_frame, duration=intro_duration, fps=44100)
                                 
-                                # Concatenate silent intro + music
                                 full_audio = concatenate_audioclips([silent_audio, audio_clip])
                                 clip = clip.set_audio(full_audio)
                                 clip.fps = 24
@@ -676,9 +863,6 @@ with col_right:
                 except Exception as e:
                     st.error(f"❌ Error: {str(e)}")
 
-# -------------------
-# Display Video and Downloads - Right Column
-# -------------------
 if 'video_file' in st.session_state:
     with col_right:
         st.markdown("### 🎬 Your Creation")
@@ -709,4 +893,9 @@ if 'video_file' in st.session_state:
                     mime="video/mp4",
                     use_container_width=True
                 )
-        st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)patch.set_facecolor('black')
+                                    gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
+                                    ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
+                                    ax_bar = fig.add_subplot(gs[1])
+                                
+                                    fig.
