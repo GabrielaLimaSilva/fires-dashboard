@@ -379,11 +379,65 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                     ax_map.add_feature(cfeature.COASTLINE, edgecolor='gray', linewidth=0.5)
                     ax_map.set_xticks([])
                     ax_map.set_yticks([])
-                    ax_map.scatter(df_day[lon_col], df_day[lat_col], c=frp_norm, cmap='hot', s=200 + 100 * np.sin(alpha * np.pi), alpha=0.7 + 0.3*alpha, linewidths=2, edgecolors='yellow', transform=ccrs.PlateCarree(), marker='o')
+                    
+                    # VISUALIZAÇÃO CINEMATOGRÁFICA DE FOGO
                     if len(df_day) > 0:
-                        high_intensity = df_day[df_day['frp'] > df_day['frp'].quantile(0.7)] if 'frp' in df_day.columns else df_day
+                        # Camada 1: Glow externo (vermelho escuro)
+                        glow_sizes = 600 + 200 * np.sin(alpha * np.pi * 2)
+                        ax_map.scatter(df_day[lon_col], df_day[lat_col], 
+                                     c='#8B0000', s=glow_sizes, alpha=0.15 * alpha,
+                                     transform=ccrs.PlateCarree())
+                        
+                        # Camada 2: Halo alaranjado médio
+                        halo_sizes = 400 + 150 * np.sin(alpha * np.pi * 2)
+                        ax_map.scatter(df_day[lon_col], df_day[lat_col], 
+                                     c='#FF4500', s=halo_sizes, alpha=0.25 * alpha,
+                                     transform=ccrs.PlateCarree())
+                        
+                        # Camada 3: Core laranja brilhante
+                        core_sizes = 250 + 100 * np.sin(alpha * np.pi * 2)
+                        ax_map.scatter(df_day[lon_col], df_day[lat_col], 
+                                     c='#FF8C00', s=core_sizes, alpha=0.6 * alpha,
+                                     linewidths=0, transform=ccrs.PlateCarree())
+                        
+                        # Camada 4: Centro amarelo intenso (variação por intensidade)
+                        center_colors = plt.cm.YlOrRd(frp_norm * 0.7 + 0.3)
+                        center_sizes = 120 + 80 * np.sin(alpha * np.pi * 3) * (1 + frp_norm)
+                        ax_map.scatter(df_day[lon_col], df_day[lat_col], 
+                                     c=center_colors, s=center_sizes, alpha=0.85 * alpha,
+                                     edgecolors='#FFD700', linewidths=1.5,
+                                     transform=ccrs.PlateCarree())
+                        
+                        # Camada 5: Núcleo branco brilhante para focos intensos
+                        high_intensity = df_day[df_day['frp'] > df_day['frp'].quantile(0.7)] if 'frp' in df_day.columns else df_day.head(int(len(df_day)*0.3))
                         if len(high_intensity) > 0:
-                            ax_map.scatter(high_intensity[lon_col], high_intensity[lat_col], c='white', s=300, alpha=0.3*alpha, linewidths=1, edgecolors='orange', transform=ccrs.PlateCarree(), marker='*')
+                            white_sizes = 80 + 60 * np.sin(alpha * np.pi * 4)
+                            ax_map.scatter(high_intensity[lon_col], high_intensity[lat_col], 
+                                         c='white', s=white_sizes, alpha=0.9 * alpha,
+                                         edgecolors='#FFFF00', linewidths=2,
+                                         transform=ccrs.PlateCarree(), marker='*', zorder=10)
+                            
+                            # Partículas ascendentes (simulando fagulhas)
+                            if alpha > 0.5:
+                                n_particles = min(len(high_intensity), 20)
+                                particle_offset = 0.05 * (alpha - 0.5) * 2
+                                for idx in range(n_particles):
+                                    row = high_intensity.iloc[idx]
+                                    # Fagulhas subindo
+                                    particle_lat = row[lat_col] + particle_offset * np.random.uniform(0.5, 1.5)
+                                    particle_lon = row[lon_col] + np.random.uniform(-0.02, 0.02)
+                                    ax_map.scatter(particle_lon, particle_lat, 
+                                                 c='#FFD700', s=20, alpha=0.6 * (1 - particle_offset*2),
+                                                 transform=ccrs.PlateCarree(), marker='.', zorder=11)
+                        
+                        # Efeito de pulsação para dar vida
+                        if k % 3 == 0:  # A cada 3 frames, adiciona "explosão"
+                            burst_indices = np.random.choice(len(df_day), size=min(5, len(df_day)), replace=False)
+                            burst_points = df_day.iloc[burst_indices]
+                            ax_map.scatter(burst_points[lon_col], burst_points[lat_col],
+                                         c='#FF0000', s=800, alpha=0.2,
+                                         transform=ccrs.PlateCarree())
+                    
                     bar_heights = [fires_per_day.loc[fires_per_day['acq_date']==d,'n_fires'].values[0] if d<=day else 0 for d in all_days]
                     colors = ['orangered' if d<=day else 'gray' for d in all_days]
                     bars = ax_bar.bar(all_days, bar_heights, color=colors, alpha=0.9, edgecolor='white', linewidth=0.5)
