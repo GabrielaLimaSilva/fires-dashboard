@@ -729,7 +729,7 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                 if df_local.empty:
                     with col_right:
                         st.warning("⚠️ No fires found in this area and period.")
-                else:
+                                else:
                     fires_per_day = df_local.groupby('acq_date').size().reset_index(name='n_fires')
                     total_fires = len(df_local)
                     avg_fires_per_day = df_local.groupby('acq_date').size().mean()
