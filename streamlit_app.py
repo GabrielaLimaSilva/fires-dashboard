@@ -610,7 +610,10 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             if cache_key:
                 status_text.text("💾 Saving to cache...")
                 cached_video, cached_audio = save_to_cache(cache_key, "fires_video.mp4", "fires_sound.mp3")
-                # Salvar stats (já estão em formato JSON-compatível)
+                st.session_state['video_file'] = cached_video
+                st.session_state['mp3_file'] = cached_audio
+                
+                # Salvar stats DEPOIS de definir os arquivos
                 if 'stats_data' in st.session_state:
                     try:
                         stats_file = os.path.join(CACHE_DIR, f"stats_{cache_key}.json")
@@ -619,29 +622,34 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                         # Debug: mostrar o que vai salvar
                         status_text.text(f"💾 Saving stats: {stats_to_save}")
                         
+                        # Salvar com sync completo
                         with open(stats_file, 'w') as f:
                             json.dump(stats_to_save, f, indent=2)
-                            f.flush()  # Garantir que foi escrito no disco
+                            f.flush()  # Flush do buffer Python
+                            os.fsync(f.fileno())  # Flush do buffer do OS
                         
-                        # Verificar se salvou corretamente
-                        if os.path.exists(stats_file):
-                            with open(stats_file, 'r') as f:
-                                verify = json.load(f)
-                                status_text.text(f"✅ Stats saved and verified: {verify}")
-                        else:
-                            st.warning("⚠️ Stats file not saved properly")
+                        # Verificar se salvou corretamente lendo de volta
+                        with open(stats_file, 'r') as f:
+                            verify = json.load(f)
+                            if verify == stats_to_save:
+                                status_text.text(f"✅ Stats verified OK!")
+                            else:
+                                st.warning(f"⚠️ Stats verification failed: {verify}")
                     except Exception as e:
                         st.warning(f"⚠️ Could not save stats: {e}")
                 else:
                     st.warning("⚠️ No stats_data in session_state to save")
-                st.session_state['video_file'] = cached_video
-                st.session_state['mp3_file'] = cached_audio
             else:
                 st.session_state['video_file'] = "fires_video.mp4"
             
             progress_bar.progress(100)
             status_text.text("✅ Complete!")
             st.session_state['generate_clicked'] = False
+            
+            # Garantir que tudo foi salvo antes do rerun
+            import time
+            time.sleep(0.5)  # Pequeno delay para garantir flush
+            
             progress_placeholder.empty()
             status_placeholder.empty()
             st.rerun()
