@@ -280,7 +280,7 @@ col1, col2 = st.sidebar.columns(2)
 with col1:
     data_date = st.date_input("Start date", value=datetime(2019, 8, 14)).strftime("%Y-%m-%d")
 with col2:
-    day_range = st.number_input("Days", value=10, min_value=1, max_value=30)
+    day_range = st.slider("Days", min_value=1, max_value=10, value=10)
 
 total_duration_sec = 1.2*day_range
 
@@ -373,7 +373,13 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
         
         if not df_local.empty:
             fires_per_day = df_local.groupby('acq_date').size().reset_index(name='n_fires')
-            st.session_state['stats_data'] = {'total': len(df_local), 'days': len(fires_per_day), 'avg': fires_per_day['n_fires'].mean(), 'peak': fires_per_day['n_fires'].max()}
+            # Criar stats convertendo tipos numpy/pandas para Python nativos
+            st.session_state['stats_data'] = {
+                'total': int(len(df_local)), 
+                'days': int(len(fires_per_day)), 
+                'avg': float(fires_per_day['n_fires'].mean()), 
+                'peak': int(fires_per_day['n_fires'].max())
+            }
             
             status_text.text("🎵 Composing fire symphony...")
             progress_bar.progress(25)
@@ -578,21 +584,13 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             if cache_key:
                 status_text.text("💾 Saving to cache...")
                 cached_video, cached_audio = save_to_cache(cache_key, "fires_video.mp4", "fires_sound.mp3")
-                # Salvar stats também (convertendo tipos numpy para JSON)
+                # Salvar stats (já estão em formato JSON-compatível)
                 if 'stats_data' in st.session_state:
                     try:
                         stats_file = os.path.join(CACHE_DIR, f"stats_{cache_key}.json")
-                        # Converter numpy/pandas types para tipos nativos do Python
-                        stats_to_save = {
-                            'total': int(st.session_state['stats_data']['total']),
-                            'days': int(st.session_state['stats_data']['days']),
-                            'avg': float(st.session_state['stats_data']['avg']),
-                            'peak': int(st.session_state['stats_data']['peak'])
-                        }
                         with open(stats_file, 'w') as f:
-                            json.dump(stats_to_save, f)
-                    except Exception as e:
-                        # Se falhar ao salvar stats, continua sem erro
+                            json.dump(st.session_state['stats_data'], f)
+                    except Exception:
                         pass
                 st.session_state['video_file'] = cached_video
                 st.session_state['mp3_file'] = cached_audio
