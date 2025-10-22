@@ -21,7 +21,7 @@ import json
 AudioSegment.converter = which("ffmpeg")
 AudioSegment.ffprobe = which("ffprobe")
 
-# ============= SISTEMA DE CACHE =============
+# =============  CACHE =============
 CACHE_DIR = "video_cache"
 os.makedirs(CACHE_DIR, exist_ok=True)
 
@@ -46,7 +46,7 @@ def save_to_cache(cache_key, video_src, audio_src):
     shutil.copy2(video_src, video_dst)
     shutil.copy2(audio_src, audio_dst)
     return video_dst, audio_dst
-# ============= FIM SISTEMA DE CACHE =============
+# ============= CACHE =============
 
 st.set_page_config(page_title=f'{filename}', layout="wide", initial_sidebar_state="expanded")
 
@@ -286,7 +286,7 @@ total_duration_sec = 1.2*day_range
 
 os.makedirs("maps_png", exist_ok=True)
 
-# ============= CARREGAR CACHE AUTOMATICAMENTE (ANTES DAS COLUNAS) =============
+# ============= CACHE =============
 # Gerar cache key com parâmetros atuais
 cache_params = {
     'lat': latitude_center,
@@ -298,7 +298,7 @@ cache_params = {
 current_cache_key = generate_cache_key(cache_params)
 cached_video, cached_audio = get_cached_files(current_cache_key)
 
-# ============= CARREGAR CACHE AUTOMATICAMENTE (ANTES DAS COLUNAS) =============
+# ============= CACHE =============
 # Gerar cache key com parâmetros atuais
 cache_params = {
     'lat': latitude_center,
@@ -338,8 +338,7 @@ if cached_video:
                 os.remove(stats_file)
             except:
                 pass
-# ============= FIM CARREGAMENTO AUTOMÁTICO =============
-# ============= FIM CARREGAMENTO AUTOMÁTICO =============
+# =============https://hear-the-fire.streamlit.app/=============
 
 col_left, col_right = st.columns([1, 3], gap="medium")
 
