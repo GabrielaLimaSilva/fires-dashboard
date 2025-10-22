@@ -322,7 +322,7 @@ with col_left:
             st.session_state['current_cache_key'] = current_cache_key
             st.session_state['generate_clicked'] = True
     
-    if 'video_file' in st.session_state and os.path.exists(st.session_state.get('video_file', '')):
+    if 'video_file' in st.session_state and st.session_state.get('video_file') and os.path.exists(st.session_state['video_file']):
         st.markdown("#### 📊 Stats")
         if 'stats_data' in st.session_state:
             stats = st.session_state['stats_data']
@@ -331,7 +331,7 @@ with col_left:
         st.markdown("#### 💾 Download")
         col_d1, col_d2 = st.columns(2)
         with col_d1:
-            if 'mp3_file' in st.session_state and os.path.exists(st.session_state['mp3_file']):
+            if 'mp3_file' in st.session_state and st.session_state.get('mp3_file') and os.path.exists(st.session_state['mp3_file']):
                 with open(st.session_state['mp3_file'], "rb") as f:
                     st.download_button("🎵 MP3", f.read(), st.session_state['mp3_file'], "audio/mpeg", use_container_width=True)
         with col_d2:
@@ -341,7 +341,7 @@ with col_left:
 with col_right:
     if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
         st.markdown('<div class="video-container"><div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.8);"><h2 style="color: #ffd700;">⏳ Generating...</h2><p>Please wait.</p></div></div>', unsafe_allow_html=True)
-    elif 'video_file' in st.session_state and os.path.exists(st.session_state.get('video_file', '')):
+    elif 'video_file' in st.session_state and st.session_state.get('video_file') and os.path.exists(st.session_state['video_file']):
         st.markdown("### 🎬 Your Creation")
         st.video(st.session_state['video_file'])
     else:
