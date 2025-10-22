@@ -274,7 +274,7 @@ with col1:
 with col2:
     longitude_center = st.number_input("Longitude", value=-59.4, step=0.1)
 
-radius_km = st.sidebar.slider("Radius (km)", 50, 1000, 150, 50)
+radius_km = st.sidebar.slider("Radius (km)", 50, 500, 150, 50)
 
 col1, col2 = st.sidebar.columns(2)
 with col1:
