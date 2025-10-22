@@ -1,11 +1,62 @@
+[server]
+# Tamanho máximo de upload (em MB)
+maxUploadSize = 50
+
+# Tamanho máximo de mensagem (em MB)
+maxMessageSize = 200
+
+# Ativar proteção XSRF
+enableXsrfProtection = true
+
+# Desativar CORS
+enableCORS = false
+
+# Porta do servidor
+port = 8501
+
+# Endereço do servidor
+address = "0.0.0.0"
+
+[browser]
+# Não coletar estatísticas de uso
+gatherUsageStats = false
+
+# Não abrir browser automaticamente
+serverAddress = "localhost"
+serverPort = 8501
+
 [runner]
-pythonVersion = "3.11"
+# Desativar magic commands
+magicEnabled = false
+
+# Ativar reruns rápidos
+fastReruns = true
+
+# Tempo máximo de execução de script (em segundos)
+scriptHealthCheckTimeout = 120
+
+[client]
+# Não mostrar detalhes de erro para usuários
+showErrorDetails = false
+
+# Permitir que usuários baixem vídeos
+toolbarMode = "minimal"
+
 [theme]
+# Tema escuro personalizado
 primaryColor = "#ff4444"
-backgroundColor = "#0f0f1e"
-secondaryBackgroundColor = "#1a1a2e"
+backgroundColor = "#0a0a14"
+secondaryBackgroundColor = "#1a1a24"
 textColor = "#f5f5f5"
 font = "sans serif"
 
-[browser]
-gatherUsageStats = false
+[logger]
+# Nível de log
+level = "info"
+
+# Ativar log de performance
+enableCORS = false
+
+[deprecation]
+# Não mostrar avisos de deprecação
+showPyplotGlobalUse = false
