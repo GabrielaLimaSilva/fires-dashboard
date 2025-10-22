@@ -50,7 +50,6 @@ def save_to_cache(cache_key, video_src, audio_src):
 
 st.set_page_config(page_title=f'{filename}', layout="wide", initial_sidebar_state="expanded")
 
-# Layout RESPONSIVO - Desktop original, Mobile otimizado
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
@@ -242,7 +241,6 @@ st.markdown("""
 
 plt.style.use("dark_background")
 
-# Funções de áudio originais (mantidas sem alteração)
 def generate_tone(frequency, duration_ms, waveform='sine', amplitude=0.5):
     if waveform == 'sine':
         tone = Sine(frequency).to_audio_segment(duration=duration_ms)
@@ -417,13 +415,11 @@ TARGET_HEIGHT = 720
 
 st.markdown('<div class="main-header"><h1>🔥 Hear the Fire</h1><p>Transform fire data into an immersive audiovisual experience</p></div>', unsafe_allow_html=True)
 
-# BARRA DE PROGRESSO NO TOPO
 progress_placeholder = st.empty()
 status_placeholder = st.empty()
 
 st.sidebar.markdown("### ⚙️ Settings")
 
-# API Key segura
 try:
     map_key = st.secrets["NASA_FIRMS_KEY"]
 except:
@@ -483,7 +479,6 @@ if cached_video:
             except:
                 pass
 
-# LAYOUT DESKTOP: Sidebar esquerda + Vídeo direita (original)
 col_left, col_right = st.columns([1, 3], gap="medium")
 
 with col_left:
@@ -534,7 +529,6 @@ with col_right:
     else:
         st.markdown('<div class="video-container"><div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.5);"><h2 style="color: #ffd700;">🎬 Your Video Will Appear Here</h2><p>Configure parameters and click GENERATE.</p></div></div>', unsafe_allow_html=True)
 
-# Processamento (resto do código igual)
 if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
     progress_bar = progress_placeholder.progress(0)
     status_text = status_placeholder.empty()
