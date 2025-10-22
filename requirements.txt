@@ -1,4 +1,4 @@
-# Hear the Fire - Requirements (Stable Versions)
+# Hear the Fire - Requirements (Streamlit Cloud Compatible)
 # Last updated: 2025-10-22
 
 # Core
@@ -19,9 +19,6 @@ cartopy==0.22.0
 
 # HTTP Requests
 requests==2.31.0
-
-# System Monitoring
-psutil==5.9.6
 
 # Additional Dependencies
 scipy==1.11.3
