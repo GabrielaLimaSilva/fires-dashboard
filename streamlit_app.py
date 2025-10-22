@@ -322,21 +322,14 @@ with col_left:
             st.session_state['video_file'] = cached_video
             st.session_state['mp3_file'] = cached_audio
             st.session_state['generate_clicked'] = False
-            # Carregar stats definitivamente
+            # Carregar stats
             stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
             if os.path.exists(stats_file):
                 try:
                     with open(stats_file, 'r') as f:
-                        file_content = f.read()
-                        if file_content.strip():  # Verificar se não está vazio
-                            loaded_stats = json.loads(file_content)
-                            st.session_state['stats_data'] = loaded_stats
-                        else:
-                            st.warning("⚠️ Stats file is empty")
-                except (json.JSONDecodeError, Exception) as e:
-                    st.warning(f"⚠️ Could not load stats: {e}")
-            else:
-                st.warning(f"⚠️ Stats file not found: {stats_file}")
+                        st.session_state['stats_data'] = json.load(f)
+                except:
+                    pass
             st.rerun()
         else:
             st.session_state['current_cache_key'] = current_cache_key
@@ -347,16 +340,6 @@ with col_left:
         if 'stats_data' in st.session_state:
             stats = st.session_state['stats_data']
             st.markdown(f'<div class="stats-grid"><div class="stat-card"><div class="metric-label">🔥 Total</div><div class="metric-value">{stats["total"]}</div></div><div class="stat-card"><div class="metric-label">📊 Days</div><div class="metric-value">{stats["days"]}</div></div><div class="stat-card"><div class="metric-label">📈 Avg</div><div class="metric-value">{stats["avg"]:.0f}</div></div><div class="stat-card"><div class="metric-label">⚡ Peak</div><div class="metric-value">{stats["peak"]}</div></div></div>', unsafe_allow_html=True)
-        else:
-            st.warning("⚠️ Stats not loaded in session_state")
-            # Mostrar o que tem no arquivo
-            stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
-            if os.path.exists(stats_file):
-                with open(stats_file, 'r') as f:
-                    content = f.read()
-                    st.code(f"Stats file content:\n{content}")
-            else:
-                st.error(f"Stats file not found: {stats_file}")
         
         st.markdown("#### 💾 Download")
         col_d1, col_d2 = st.columns(2)
@@ -406,6 +389,18 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                 'avg': float(fires_per_day['n_fires'].mean()), 
                 'peak': int(fires_per_day['n_fires'].max())
             }
+            
+            # SALVAR STATS IMEDIATAMENTE (antes de qualquer rerun)
+            cache_key = st.session_state.get('current_cache_key')
+            if cache_key:
+                try:
+                    stats_file = os.path.join(CACHE_DIR, f"stats_{cache_key}.json")
+                    with open(stats_file, 'w') as f:
+                        json.dump(st.session_state['stats_data'], f)
+                        f.flush()
+                        os.fsync(f.fileno())
+                except:
+                    pass
             
             status_text.text("🎵 Composing fire symphony...")
             progress_bar.progress(25)
@@ -608,37 +603,11 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             # Salvar no cache
             cache_key = st.session_state.get('current_cache_key')
             if cache_key:
-                status_text.text("💾 Saving to cache...")
+                status_text.text("💾 Saving video to cache...")
                 cached_video, cached_audio = save_to_cache(cache_key, "fires_video.mp4", "fires_sound.mp3")
                 st.session_state['video_file'] = cached_video
                 st.session_state['mp3_file'] = cached_audio
-                
-                # Salvar stats DEPOIS de definir os arquivos
-                if 'stats_data' in st.session_state:
-                    try:
-                        stats_file = os.path.join(CACHE_DIR, f"stats_{cache_key}.json")
-                        stats_to_save = st.session_state['stats_data']
-                        
-                        # Debug: mostrar o que vai salvar
-                        status_text.text(f"💾 Saving stats: {stats_to_save}")
-                        
-                        # Salvar com sync completo
-                        with open(stats_file, 'w') as f:
-                            json.dump(stats_to_save, f, indent=2)
-                            f.flush()  # Flush do buffer Python
-                            os.fsync(f.fileno())  # Flush do buffer do OS
-                        
-                        # Verificar se salvou corretamente lendo de volta
-                        with open(stats_file, 'r') as f:
-                            verify = json.load(f)
-                            if verify == stats_to_save:
-                                status_text.text(f"✅ Stats verified OK!")
-                            else:
-                                st.warning(f"⚠️ Stats verification failed: {verify}")
-                    except Exception as e:
-                        st.warning(f"⚠️ Could not save stats: {e}")
-                else:
-                    st.warning("⚠️ No stats_data in session_state to save")
+                # Stats já foram salvas no início
             else:
                 st.session_state['video_file'] = "fires_video.mp4"
             
