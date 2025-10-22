@@ -1,26 +1,14 @@
-# Hear the Fire - Requirements (Streamlit Cloud Compatible)
-# Last updated: 2025-10-22
-
-# Core
-streamlit==1.28.1
-pandas==2.1.1
-numpy==1.24.3
-
-# Audio Processing
-pydub==0.25.1
-
-# Video Processing
+streamlit
+pandas
+numpy
+requests
+matplotlib
+pydub
 moviepy==1.0.3
-Pillow==10.1.0
-
-# Data Visualization
-matplotlib==3.8.0
-cartopy==0.22.0
-
-# HTTP Requests
-requests==2.31.0
-
-# Additional Dependencies
-scipy==1.11.3
-imageio==2.31.5
-imageio-ffmpeg==0.4.9
+cartopy
+pillow
+audioop-lts; python_version>='3.13'
+imageio
+imageio-ffmpeg
+tqdm
+decorator
