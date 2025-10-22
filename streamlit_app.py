@@ -298,76 +298,47 @@ cache_params = {
 current_cache_key = generate_cache_key(cache_params)
 cached_video, cached_audio = get_cached_files(current_cache_key)
 
-# DEBUG
-st.sidebar.write("🔍 DEBUG INFO:")
-st.sidebar.write(f"Cache key: {current_cache_key[:8]}...")
-st.sidebar.write(f"Video exists: {cached_video is not None}")
+# ============= CARREGAR CACHE AUTOMATICAMENTE (ANTES DAS COLUNAS) =============
+# Gerar cache key com parâmetros atuais
+cache_params = {
+    'lat': latitude_center,
+    'lon': longitude_center,
+    'radius': radius_km,
+    'date': data_date,
+    'days': day_range
+}
+current_cache_key = generate_cache_key(cache_params)
+cached_video, cached_audio = get_cached_files(current_cache_key)
 
 # Se tem cache, carregar TUDO automaticamente
 if cached_video:
-    st.sidebar.write("✅ Cache found!")
-    
     # Carregar vídeo e áudio no session_state
     if 'video_file' not in st.session_state or st.session_state.get('video_file') != cached_video:
         st.session_state['video_file'] = cached_video
         st.session_state['mp3_file'] = cached_audio
-        st.sidebar.write("📹 Video loaded to session_state")
     
     # Carregar stats - com validação de arquivo corrompido
     stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
-    st.sidebar.write(f"Stats file: {stats_file}")
-    st.sidebar.write(f"Stats exists: {os.path.exists(stats_file)}")
-    
     if os.path.exists(stats_file):
         try:
             with open(stats_file, 'r') as f:
                 content = f.read()
-                st.sidebar.write(f"File size: {len(content)} chars")
-                
                 # Verificar se arquivo está completo
                 if content and content.strip().endswith('}'):
                     stats_data = json.loads(content)
-                    st.sidebar.write(f"✅ JSON valid")
-                    
                     # Validar que tem todos os campos
                     if all(key in stats_data for key in ['total', 'days', 'avg', 'peak']):
                         st.session_state['stats_data'] = stats_data
-                        st.sidebar.write("✅ Stats loaded!")
                     else:
                         os.remove(stats_file)
-                        st.sidebar.error("❌ Stats incomplete")
                 else:
                     os.remove(stats_file)
-                    st.sidebar.error("❌ Stats corrupted")
-        except Exception as e:
-            st.sidebar.error(f"❌ Error: {e}")
+        except:
             try:
                 os.remove(stats_file)
             except:
                 pass
-    else:
-        st.sidebar.warning("⚠️ Stats file missing!")
-        st.sidebar.info("💡 Click 'Clear Cache & Regenerate' below")
-else:
-    st.sidebar.write("❌ No cache found")
-    
-st.sidebar.write(f"Stats in state: {'stats_data' in st.session_state}")
-
-# Botão para limpar cache se estiver incompleto
-if cached_video and not os.path.exists(os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")):
-    if st.sidebar.button("🗑️ Clear Cache & Regenerate"):
-        # Deletar arquivos de cache
-        import glob
-        for f in glob.glob(os.path.join(CACHE_DIR, f"*{current_cache_key}*")):
-            try:
-                os.remove(f)
-            except:
-                pass
-        # Limpar session state
-        for key in ['video_file', 'mp3_file', 'stats_data']:
-            if key in st.session_state:
-                del st.session_state[key]
-        st.rerun()
+# ============= FIM CARREGAMENTO AUTOMÁTICO =============
 # ============= FIM CARREGAMENTO AUTOMÁTICO =============
 
 col_left, col_right = st.columns([1, 3], gap="medium")
