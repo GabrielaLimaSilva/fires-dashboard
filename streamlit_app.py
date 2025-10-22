@@ -323,35 +323,51 @@ if cached_video:
             with open(stats_file, 'r') as f:
                 content = f.read()
                 st.sidebar.write(f"File size: {len(content)} chars")
-                st.sidebar.code(content[:100])
                 
                 # Verificar se arquivo está completo
                 if content and content.strip().endswith('}'):
                     stats_data = json.loads(content)
-                    st.sidebar.write(f"✅ JSON valid: {stats_data}")
+                    st.sidebar.write(f"✅ JSON valid")
                     
                     # Validar que tem todos os campos
                     if all(key in stats_data for key in ['total', 'days', 'avg', 'peak']):
                         st.session_state['stats_data'] = stats_data
-                        st.sidebar.write("✅ Stats loaded to session_state!")
+                        st.sidebar.write("✅ Stats loaded!")
                     else:
-                        # Arquivo incompleto - deletar
                         os.remove(stats_file)
-                        st.sidebar.error("❌ Stats incomplete - deleted")
+                        st.sidebar.error("❌ Stats incomplete")
                 else:
-                    # Arquivo corrompido - deletar
                     os.remove(stats_file)
-                    st.sidebar.error("❌ Stats corrupted - deleted")
+                    st.sidebar.error("❌ Stats corrupted")
         except Exception as e:
             st.sidebar.error(f"❌ Error: {e}")
             try:
                 os.remove(stats_file)
             except:
                 pass
+    else:
+        st.sidebar.warning("⚠️ Stats file missing!")
+        st.sidebar.info("💡 Click 'Clear Cache & Regenerate' below")
 else:
     st.sidebar.write("❌ No cache found")
     
 st.sidebar.write(f"Stats in state: {'stats_data' in st.session_state}")
+
+# Botão para limpar cache se estiver incompleto
+if cached_video and not os.path.exists(os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")):
+    if st.sidebar.button("🗑️ Clear Cache & Regenerate"):
+        # Deletar arquivos de cache
+        import glob
+        for f in glob.glob(os.path.join(CACHE_DIR, f"*{current_cache_key}*")):
+            try:
+                os.remove(f)
+            except:
+                pass
+        # Limpar session state
+        for key in ['video_file', 'mp3_file', 'stats_data']:
+            if key in st.session_state:
+                del st.session_state[key]
+        st.rerun()
 # ============= FIM CARREGAMENTO AUTOMÁTICO =============
 
 col_left, col_right = st.columns([1, 3], gap="medium")
