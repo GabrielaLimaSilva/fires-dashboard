@@ -345,9 +345,25 @@ with col_left:
     
     if 'video_file' in st.session_state and st.session_state.get('video_file') and os.path.exists(st.session_state['video_file']):
         st.markdown("#### 📊 Stats")
+        
+        # DEBUG: Ver o que tem no session_state
+        st.write("DEBUG - Stats in session_state:", 'stats_data' in st.session_state)
+        if 'stats_data' in st.session_state:
+            st.write("DEBUG - Stats content:", st.session_state['stats_data'])
+        
         if 'stats_data' in st.session_state:
             stats = st.session_state['stats_data']
             st.markdown(f'<div class="stats-grid"><div class="stat-card"><div class="metric-label">🔥 Total</div><div class="metric-value">{stats["total"]}</div></div><div class="stat-card"><div class="metric-label">📊 Days</div><div class="metric-value">{stats["days"]}</div></div><div class="stat-card"><div class="metric-label">📈 Avg</div><div class="metric-value">{stats["avg"]:.0f}</div></div><div class="stat-card"><div class="metric-label">⚡ Peak</div><div class="metric-value">{stats["peak"]}</div></div></div>', unsafe_allow_html=True)
+        else:
+            st.error("Stats não encontradas no session_state!")
+            # Verificar se arquivo existe
+            stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
+            st.write(f"Stats file path: {stats_file}")
+            st.write(f"Stats file exists: {os.path.exists(stats_file)}")
+            if os.path.exists(stats_file):
+                with open(stats_file, 'r') as f:
+                    content = f.read()
+                    st.code(content)
         
         st.markdown("#### 💾 Download")
         col_d1, col_d2 = st.columns(2)
