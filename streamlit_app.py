@@ -193,8 +193,8 @@ st.markdown("""
             .metric-value { font-size: 16px; }
             .info-box { font-size: 12px; padding: 0.8rem; }
             .video-container { 
-                min-height: 400px;
-                height: calc(100vh - 220px);
+                min-height: 350px;
+                max-height: 500px;
             }
             .stButton>button {
                 font-size: 14px !important;
@@ -397,24 +397,20 @@ st.markdown('<div class="main-header"><h1>🔥 Hear the Fire</h1><p>Transform fi
 progress_placeholder = st.empty()
 status_placeholder = st.empty()
 
-# CONTROLES ADAPTÁVEIS - Tabs para mobile, Sidebar para desktop
-# Detectar se é mobile via media query não é possível no Streamlit, então usamos tabs sempre
-with st.expander("⚙️ Settings", expanded=False):
-    st.markdown("#### 📍 Location")
-    col1, col2 = st.columns(2)
-    with col1:
-        latitude_center = st.number_input("Latitude", value=-19.0, step=0.1, format="%.2f")
-    with col2:
-        longitude_center = st.number_input("Longitude", value=-59.4, step=0.1, format="%.2f")
+# CONTROLES SEMPRE VISÍVEIS - Interface compacta
+st.markdown("### ⚙️ Settings")
 
-    radius_km = st.slider("Radius (km)", 50, 500, 150, 50)
+col1, col2 = st.columns(2)
+with col1:
+    st.markdown("**📍 Location**")
+    latitude_center = st.number_input("Latitude", value=-19.0, step=0.1, format="%.2f", key="lat")
+    longitude_center = st.number_input("Longitude", value=-59.4, step=0.1, format="%.2f", key="lon")
+with col2:
+    st.markdown("**🎯 Parameters**")
+    radius_km = st.slider("Radius (km)", 50, 500, 150, 50, key="radius")
+    day_range = st.slider("Days", min_value=1, max_value=10, value=10, key="days")
 
-    st.markdown("#### 📅 Date Range")
-    col1, col2 = st.columns(2)
-    with col1:
-        data_date = st.date_input("Start date", value=datetime(2019, 8, 14)).strftime("%Y-%m-%d")
-    with col2:
-        day_range = st.slider("Days", min_value=1, max_value=10, value=10)
+data_date = st.date_input("📅 Start date", value=datetime(2019, 8, 14), key="date").strftime("%Y-%m-%d")
 
 total_duration_sec = 1.2*day_range
 
