@@ -315,8 +315,12 @@ with col_left:
             # Carregar stats se existir
             stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
             if os.path.exists(stats_file):
-                with open(stats_file, 'r') as f:
-                    st.session_state['stats_data'] = json.load(f)
+                try:
+                    with open(stats_file, 'r') as f:
+                        st.session_state['stats_data'] = json.load(f)
+                except (json.JSONDecodeError, Exception):
+                    # Se o arquivo JSON estiver corrompido, ignora
+                    pass
             st.rerun()
         else:
             st.session_state['current_cache_key'] = current_cache_key
@@ -576,16 +580,20 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                 cached_video, cached_audio = save_to_cache(cache_key, "fires_video.mp4", "fires_sound.mp3")
                 # Salvar stats também (convertendo tipos numpy para JSON)
                 if 'stats_data' in st.session_state:
-                    stats_file = os.path.join(CACHE_DIR, f"stats_{cache_key}.json")
-                    # Converter numpy/pandas types para tipos nativos do Python
-                    stats_to_save = {
-                        'total': int(st.session_state['stats_data']['total']),
-                        'days': int(st.session_state['stats_data']['days']),
-                        'avg': float(st.session_state['stats_data']['avg']),
-                        'peak': int(st.session_state['stats_data']['peak'])
-                    }
-                    with open(stats_file, 'w') as f:
-                        json.dump(stats_to_save, f)
+                    try:
+                        stats_file = os.path.join(CACHE_DIR, f"stats_{cache_key}.json")
+                        # Converter numpy/pandas types para tipos nativos do Python
+                        stats_to_save = {
+                            'total': int(st.session_state['stats_data']['total']),
+                            'days': int(st.session_state['stats_data']['days']),
+                            'avg': float(st.session_state['stats_data']['avg']),
+                            'peak': int(st.session_state['stats_data']['peak'])
+                        }
+                        with open(stats_file, 'w') as f:
+                            json.dump(stats_to_save, f)
+                    except Exception as e:
+                        # Se falhar ao salvar stats, continua sem erro
+                        pass
                 st.session_state['video_file'] = cached_video
                 st.session_state['mp3_file'] = cached_audio
             else:
