@@ -574,11 +574,18 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             if cache_key:
                 status_text.text("💾 Saving to cache...")
                 cached_video, cached_audio = save_to_cache(cache_key, "fires_video.mp4", "fires_sound.mp3")
-                # Salvar stats também
+                # Salvar stats também (convertendo tipos numpy para JSON)
                 if 'stats_data' in st.session_state:
                     stats_file = os.path.join(CACHE_DIR, f"stats_{cache_key}.json")
+                    # Converter numpy/pandas types para tipos nativos do Python
+                    stats_to_save = {
+                        'total': int(st.session_state['stats_data']['total']),
+                        'days': int(st.session_state['stats_data']['days']),
+                        'avg': float(st.session_state['stats_data']['avg']),
+                        'peak': int(st.session_state['stats_data']['peak'])
+                    }
                     with open(stats_file, 'w') as f:
-                        json.dump(st.session_state['stats_data'], f)
+                        json.dump(stats_to_save, f)
                 st.session_state['video_file'] = cached_video
                 st.session_state['mp3_file'] = cached_audio
             else:
