@@ -302,6 +302,16 @@ with col_left:
     current_cache_key = generate_cache_key(cache_params)
     cached_video, cached_audio = get_cached_files(current_cache_key)
     
+    # Se tem cache, carregar stats automaticamente
+    if cached_video:
+        stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
+        if os.path.exists(stats_file) and 'stats_data' not in st.session_state:
+            try:
+                with open(stats_file, 'r') as f:
+                    st.session_state['stats_data'] = json.load(f)
+            except (json.JSONDecodeError, Exception):
+                pass
+    
     # Mostrar se tem cache disponível
     if cached_video:
         st.markdown('<div class="info-box" style="border-left-color: #00ff88;"><strong>⚡ Cache found!</strong> Video ready to load instantly.</div>', unsafe_allow_html=True)
@@ -312,15 +322,21 @@ with col_left:
             st.session_state['video_file'] = cached_video
             st.session_state['mp3_file'] = cached_audio
             st.session_state['generate_clicked'] = False
-            # Carregar stats se existir
+            # Carregar stats definitivamente
             stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
             if os.path.exists(stats_file):
                 try:
                     with open(stats_file, 'r') as f:
-                        st.session_state['stats_data'] = json.load(f)
-                except (json.JSONDecodeError, Exception):
-                    # Se o arquivo JSON estiver corrompido, ignora
-                    pass
+                        loaded_stats = json.load(f)
+                        st.session_state['stats_data'] = loaded_stats
+                except (json.JSONDecodeError, Exception) as e:
+                    # Se falhar, tenta criar stats padrão
+                    st.session_state['stats_data'] = {
+                        'total': 0,
+                        'days': 0,
+                        'avg': 0.0,
+                        'peak': 0
+                    }
             st.rerun()
         else:
             st.session_state['current_cache_key'] = current_cache_key
@@ -589,9 +605,13 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                     try:
                         stats_file = os.path.join(CACHE_DIR, f"stats_{cache_key}.json")
                         with open(stats_file, 'w') as f:
-                            json.dump(st.session_state['stats_data'], f)
-                    except Exception:
-                        pass
+                            json.dump(st.session_state['stats_data'], f, indent=2)
+                            f.flush()  # Garantir que foi escrito no disco
+                        # Verificar se salvou corretamente
+                        if not os.path.exists(stats_file):
+                            st.warning("⚠️ Stats file not saved properly")
+                    except Exception as e:
+                        st.warning(f"⚠️ Could not save stats: {e}")
                 st.session_state['video_file'] = cached_video
                 st.session_state['mp3_file'] = cached_audio
             else:
