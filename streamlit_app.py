@@ -48,38 +48,177 @@ def save_to_cache(cache_key, video_src, audio_src):
     return video_dst, audio_dst
 # ============= CACHE =============
 
-st.set_page_config(page_title=f'{filename}', layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title=f'{filename}', layout="wide", initial_sidebar_state="auto")
 
-# Layout moderno e compacto
+# Layout RESPONSIVO - Mobile First
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         * { font-family: 'Inter', sans-serif; }
-        .main .block-container { padding-top: 1rem !important; padding-bottom: 0rem !important; padding-left: 2rem !important; padding-right: 2rem !important; max-width: 100% !important; }
+        
+        /* MOBILE FIRST - Base styles para mobile */
+        .main .block-container { 
+            padding: 0.5rem !important; 
+            max-width: 100% !important; 
+        }
+        
         #MainMenu, footer, header { visibility: hidden; }
         body { background: #0a0a14; color: #f5f5f5; }
         
-        .main-header { background: linear-gradient(135deg, #ff4444 0%, #ff8c00 50%, #ffd700 100%); padding: 1.5rem 2rem; border-radius: 16px; margin-bottom: 1rem; box-shadow: 0 8px 32px rgba(255, 68, 68, 0.4); }
-        .main-header h1 { margin: 0; color: white; font-size: 28px; font-weight: 700; }
-        .main-header p { margin: 0.3rem 0 0 0; color: rgba(255,255,255,0.9); font-size: 13px; }
+        /* Header adaptável */
+        .main-header { 
+            background: linear-gradient(135deg, #ff4444 0%, #ff8c00 50%, #ffd700 100%); 
+            padding: 1rem; 
+            border-radius: 12px; 
+            margin-bottom: 0.8rem; 
+            box-shadow: 0 4px 20px rgba(255, 68, 68, 0.4); 
+        }
+        .main-header h1 { 
+            margin: 0; 
+            color: white; 
+            font-size: 20px; 
+            font-weight: 700; 
+        }
+        .main-header p { 
+            margin: 0.2rem 0 0 0; 
+            color: rgba(255,255,255,0.9); 
+            font-size: 11px; 
+        }
         
-        .stat-card { background: linear-gradient(135deg, rgba(255, 68, 68, 0.12) 0%, rgba(255, 140, 0, 0.08) 100%); padding: 0.6rem 0.8rem; border-radius: 10px; border-left: 3px solid #ff4444; margin-bottom: 0.5rem; }
-        .metric-label { font-size: 9px; color: #ff8c00; font-weight: 600; text-transform: uppercase; }
-        .metric-value { font-size: 16px; color: #ffd700; font-weight: 700; }
+        /* Cards de stats - grid responsivo */
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 0.4rem; 
+            margin: 0.5rem 0; 
+        }
         
-        .video-container { background: #000; border-radius: 16px; overflow: visible; box-shadow: 0 12px 40px rgba(255, 68, 68, 0.5); border: 2px solid rgba(255, 140, 0, 0.3); height: calc(100vh - 220px); display: flex; align-items: center; justify-content: center; padding: 0.5rem; }
+        .stat-card { 
+            background: linear-gradient(135deg, rgba(255, 68, 68, 0.12) 0%, rgba(255, 140, 0, 0.08) 100%); 
+            padding: 0.5rem; 
+            border-radius: 8px; 
+            border-left: 3px solid #ff4444; 
+        }
+        .metric-label { 
+            font-size: 8px; 
+            color: #ff8c00; 
+            font-weight: 600; 
+            text-transform: uppercase; 
+        }
+        .metric-value { 
+            font-size: 14px; 
+            color: #ffd700; 
+            font-weight: 700; 
+        }
         
-        .stButton>button { background: linear-gradient(135deg, #ff4444 0%, #ff8c00 100%) !important; color: white !important; border: none !important; padding: 0.6rem 1.2rem !important; border-radius: 10px !important; font-weight: 600 !important; width: 100% !important; }
+        /* Vídeo container responsivo */
+        .video-container { 
+            background: #000; 
+            border-radius: 12px; 
+            overflow: hidden; 
+            box-shadow: 0 8px 24px rgba(255, 68, 68, 0.4); 
+            border: 2px solid rgba(255, 140, 0, 0.3); 
+            margin: 0.5rem 0;
+            min-height: 200px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
         
-        .info-box { background: linear-gradient(135deg, rgba(255, 68, 68, 0.15) 0%, rgba(255, 140, 0, 0.1) 100%); border-left: 4px solid #ff4444; padding: 0.8rem; border-radius: 10px; margin: 0.8rem 0; font-size: 12px; }
+        /* Botões responsivos */
+        .stButton>button { 
+            background: linear-gradient(135deg, #ff4444 0%, #ff8c00 100%) !important; 
+            color: white !important; 
+            border: none !important; 
+            padding: 0.6rem 1rem !important; 
+            border-radius: 8px !important; 
+            font-weight: 600 !important; 
+            width: 100% !important;
+            font-size: 13px !important;
+        }
+        
+        /* Info boxes responsivas */
+        .info-box { 
+            background: linear-gradient(135deg, rgba(255, 68, 68, 0.15) 0%, rgba(255, 140, 0, 0.1) 100%); 
+            border-left: 3px solid #ff4444; 
+            padding: 0.6rem; 
+            border-radius: 8px; 
+            margin: 0.5rem 0; 
+            font-size: 11px; 
+        }
         .info-box strong { color: #ffd700; }
-        .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.8rem; }
+        
+        /* Ajustes para inputs do Streamlit */
+        .stNumberInput, .stSlider, .stDateInput {
+            font-size: 12px !important;
+        }
+        
+        /* Sidebar responsiva */
+        [data-testid="stSidebar"] {
+            background: #0a0a14;
+        }
+        
+        /* TABLET - a partir de 768px */
+        @media (min-width: 768px) {
+            .main .block-container { 
+                padding: 1rem 1.5rem !important; 
+            }
+            .main-header h1 { font-size: 24px; }
+            .main-header p { font-size: 12px; }
+            .stat-card { padding: 0.6rem; }
+            .metric-label { font-size: 9px; }
+            .metric-value { font-size: 16px; }
+            .info-box { font-size: 12px; padding: 0.7rem; }
+            .video-container { min-height: 300px; }
+            .stats-grid { 
+                grid-template-columns: repeat(4, 1fr); 
+                gap: 0.5rem; 
+            }
+        }
+        
+        /* DESKTOP - a partir de 1024px */
+        @media (min-width: 1024px) {
+            .main .block-container { 
+                padding: 1rem 2rem !important; 
+            }
+            .main-header { 
+                padding: 1.5rem 2rem; 
+                border-radius: 16px; 
+                margin-bottom: 1rem; 
+            }
+            .main-header h1 { font-size: 28px; }
+            .main-header p { font-size: 13px; }
+            .stat-card { padding: 0.6rem 0.8rem; }
+            .metric-label { font-size: 9px; }
+            .metric-value { font-size: 16px; }
+            .info-box { font-size: 12px; padding: 0.8rem; }
+            .video-container { 
+                min-height: 400px;
+                height: calc(100vh - 220px);
+            }
+            .stButton>button {
+                font-size: 14px !important;
+            }
+        }
+        
+        /* Orientação landscape mobile */
+        @media (max-width: 767px) and (orientation: landscape) {
+            .video-container { 
+                min-height: 150px;
+                max-height: 60vh;
+            }
+            .main-header { 
+                padding: 0.5rem; 
+            }
+            .main-header h1 { font-size: 16px; }
+            .main-header p { font-size: 10px; }
+        }
     </style>
 """, unsafe_allow_html=True)
 
 plt.style.use("dark_background")
 
-# Funções de áudio originais
+# Funções de áudio originais (mantidas sem alteração)
 def generate_tone(frequency, duration_ms, waveform='sine', amplitude=0.5):
     if waveform == 'sine':
         tone = Sine(frequency).to_audio_segment(duration=duration_ms)
@@ -254,40 +393,40 @@ TARGET_HEIGHT = 720
 
 st.markdown('<div class="main-header"><h1>🔥 Hear the Fire</h1><p>Transform fire data into an immersive audiovisual experience</p></div>', unsafe_allow_html=True)
 
-# BARRA DE PROGRESSO NO TOPO - criar placeholders sempre
+# BARRA DE PROGRESSO NO TOPO
 progress_placeholder = st.empty()
 status_placeholder = st.empty()
 
-st.sidebar.markdown("### ⚙️ Settings")
+# CONTROLES ADAPTÁVEIS - Tabs para mobile, Sidebar para desktop
+# Detectar se é mobile via media query não é possível no Streamlit, então usamos tabs sempre
+with st.expander("⚙️ Settings", expanded=False):
+    st.markdown("#### 📍 Location")
+    col1, col2 = st.columns(2)
+    with col1:
+        latitude_center = st.number_input("Latitude", value=-19.0, step=0.1, format="%.2f")
+    with col2:
+        longitude_center = st.number_input("Longitude", value=-59.4, step=0.1, format="%.2f")
 
-# API Key segura - usar secrets do Streamlit
-try:
-    map_key = st.secrets["NASA_FIRMS_KEY"]
-except:
-    # Fallback para desenvolvimento local - criar arquivo .streamlit/secrets.toml
-    map_key = "a4abee84e580a96ff5ba9bd54cd11a8d"
+    radius_km = st.slider("Radius (km)", 50, 500, 150, 50)
 
-
-col1, col2 = st.sidebar.columns(2)
-with col1:
-    latitude_center = st.number_input("Latitude", value=-19.0, step=0.1)
-with col2:
-    longitude_center = st.number_input("Longitude", value=-59.4, step=0.1)
-
-radius_km = st.sidebar.slider("Radius (km)", 50, 500, 150, 50)
-
-col1, col2 = st.sidebar.columns(2)
-with col1:
-    data_date = st.date_input("Start date", value=datetime(2019, 8, 14)).strftime("%Y-%m-%d")
-with col2:
-    day_range = st.slider("Days", min_value=1, max_value=10, value=10)
+    st.markdown("#### 📅 Date Range")
+    col1, col2 = st.columns(2)
+    with col1:
+        data_date = st.date_input("Start date", value=datetime(2019, 8, 14)).strftime("%Y-%m-%d")
+    with col2:
+        day_range = st.slider("Days", min_value=1, max_value=10, value=10)
 
 total_duration_sec = 1.2*day_range
 
+# API Key segura
+try:
+    map_key = st.secrets["NASA_FIRMS_KEY"]
+except:
+    map_key = "a4abee84e580a96ff5ba9bd54cd11a8d"
+
 os.makedirs("maps_png", exist_ok=True)
 
-# ============= CACHE =============
-# Gerar cache key com parâmetros atuais
+# Cache
 cache_params = {
     'lat': latitude_center,
     'lon': longitude_center,
@@ -298,35 +437,19 @@ cache_params = {
 current_cache_key = generate_cache_key(cache_params)
 cached_video, cached_audio = get_cached_files(current_cache_key)
 
-# ============= CACHE =============
-# Gerar cache key com parâmetros atuais
-cache_params = {
-    'lat': latitude_center,
-    'lon': longitude_center,
-    'radius': radius_km,
-    'date': data_date,
-    'days': day_range
-}
-current_cache_key = generate_cache_key(cache_params)
-cached_video, cached_audio = get_cached_files(current_cache_key)
-
-# Se tem cache, carregar TUDO automaticamente
+# Auto-load cache
 if cached_video:
-    # Carregar vídeo e áudio no session_state
     if 'video_file' not in st.session_state or st.session_state.get('video_file') != cached_video:
         st.session_state['video_file'] = cached_video
         st.session_state['mp3_file'] = cached_audio
     
-    # Carregar stats - com validação de arquivo corrompido
     stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
     if os.path.exists(stats_file):
         try:
             with open(stats_file, 'r') as f:
                 content = f.read()
-                # Verificar se arquivo está completo
                 if content and content.strip().endswith('}'):
                     stats_data = json.loads(content)
-                    # Validar que tem todos os campos
                     if all(key in stats_data for key in ['total', 'days', 'avg', 'peak']):
                         st.session_state['stats_data'] = stats_data
                     else:
@@ -338,61 +461,64 @@ if cached_video:
                 os.remove(stats_file)
             except:
                 pass
-# =============https://hear-the-fire.streamlit.app/=============
 
-col_left, col_right = st.columns([1, 3], gap="medium")
+# LAYOUT MOBILE-FIRST: Uma coluna em mobile, duas em desktop
+st.markdown('<div class="info-box"><strong>🎵 How it works:</strong> Each day becomes a musical chord. More fires = richer sound. <strong>Listen to the data.</strong></div>', unsafe_allow_html=True)
 
-with col_left:
-    st.markdown('<div class="info-box"><strong>🎵 How it works:</strong> Each day becomes a musical chord. More fires = richer sound. <strong>Listen to the data.</strong></div>', unsafe_allow_html=True)
-    
-    # Mostrar se tem cache disponível
+if cached_video:
+    st.markdown('<div class="info-box" style="border-left-color: #00ff88;"><strong>⚡ Cache found!</strong> Video ready to load instantly.</div>', unsafe_allow_html=True)
+
+if st.button("🔥 GENERATE", key="generate_btn"):
     if cached_video:
-        st.markdown('<div class="info-box" style="border-left-color: #00ff88;"><strong>⚡ Cache found!</strong> Video ready to load instantly.</div>', unsafe_allow_html=True)
-    
-    if st.button("🔥 GENERATE", key="generate_btn"):
-        # Se tem cache, carrega direto
-        if cached_video:
-            st.session_state['video_file'] = cached_video
-            st.session_state['mp3_file'] = cached_audio
-            st.session_state['generate_clicked'] = False
-            # Carregar stats
-            stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
-            if os.path.exists(stats_file):
-                try:
-                    with open(stats_file, 'r') as f:
-                        st.session_state['stats_data'] = json.load(f)
-                except:
-                    pass
-            st.rerun()
-        else:
-            st.session_state['current_cache_key'] = current_cache_key
-            st.session_state['generate_clicked'] = True
-    
-    if 'video_file' in st.session_state and st.session_state.get('video_file') and os.path.exists(st.session_state['video_file']):
-        st.markdown("#### 📊 Stats")
-        if 'stats_data' in st.session_state:
-            stats = st.session_state['stats_data']
-            st.markdown(f'<div class="stats-grid"><div class="stat-card"><div class="metric-label">🔥 Total</div><div class="metric-value">{stats["total"]}</div></div><div class="stat-card"><div class="metric-label">📊 Days</div><div class="metric-value">{stats["days"]}</div></div><div class="stat-card"><div class="metric-label">📈 Avg</div><div class="metric-value">{stats["avg"]:.0f}</div></div><div class="stat-card"><div class="metric-label">⚡ Peak</div><div class="metric-value">{stats["peak"]}</div></div></div>', unsafe_allow_html=True)
-        
-        st.markdown("#### 💾 Download")
-        col_d1, col_d2 = st.columns(2)
-        with col_d1:
-            if 'mp3_file' in st.session_state and st.session_state.get('mp3_file') and os.path.exists(st.session_state['mp3_file']):
-                with open(st.session_state['mp3_file'], "rb") as f:
-                    st.download_button("🎵 MP3", f.read(), st.session_state['mp3_file'], "audio/mpeg", use_container_width=True)
-        with col_d2:
-            with open(st.session_state['video_file'], "rb") as f:
-                st.download_button("🎬 MP4", f.read(), st.session_state['video_file'], "video/mp4", use_container_width=True)
-
-with col_right:
-    if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
-        st.markdown('<div class="video-container"><div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.8);"><h2 style="color: #ffd700;">⏳ Generating...</h2><p>Please wait.</p></div></div>', unsafe_allow_html=True)
-    elif 'video_file' in st.session_state and st.session_state.get('video_file') and os.path.exists(st.session_state['video_file']):
-        st.markdown("### 🎬 Your Creation")
-        st.video(st.session_state['video_file'])
+        st.session_state['video_file'] = cached_video
+        st.session_state['mp3_file'] = cached_audio
+        st.session_state['generate_clicked'] = False
+        stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
+        if os.path.exists(stats_file):
+            try:
+                with open(stats_file, 'r') as f:
+                    st.session_state['stats_data'] = json.load(f)
+            except:
+                pass
+        st.rerun()
     else:
-        st.markdown('<div class="video-container"><div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.5);"><h2 style="color: #ffd700;">🎬 Your Video Will Appear Here</h2><p>Configure parameters and click GENERATE.</p></div></div>', unsafe_allow_html=True)
+        st.session_state['current_cache_key'] = current_cache_key
+        st.session_state['generate_clicked'] = True
 
+# VÍDEO E STATS - Layout responsivo
+if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
+    st.markdown('<div class="video-container"><div style="text-align: center; padding: 2rem; color: rgba(255,255,255,0.8);"><h2 style="color: #ffd700; font-size: 18px;">⏳ Generating...</h2><p style="font-size: 12px;">Please wait.</p></div></div>', unsafe_allow_html=True)
+elif 'video_file' in st.session_state and st.session_state.get('video_file') and os.path.exists(st.session_state['video_file']):
+    st.markdown("### 🎬 Your Creation")
+    st.video(st.session_state['video_file'])
+    
+    # Stats abaixo do vídeo em mobile
+    if 'stats_data' in st.session_state:
+        st.markdown("#### 📊 Statistics")
+        stats = st.session_state['stats_data']
+        st.markdown(f'''
+        <div class="stats-grid">
+            <div class="stat-card"><div class="metric-label">🔥 Total</div><div class="metric-value">{stats["total"]}</div></div>
+            <div class="stat-card"><div class="metric-label">📊 Days</div><div class="metric-value">{stats["days"]}</div></div>
+            <div class="stat-card"><div class="metric-label">📈 Avg</div><div class="metric-value">{stats["avg"]:.0f}</div></div>
+            <div class="stat-card"><div class="metric-label">⚡ Peak</div><div class="metric-value">{stats["peak"]}</div></div>
+        </div>
+        ''', unsafe_allow_html=True)
+    
+    # Downloads
+    st.markdown("#### 💾 Download")
+    col_d1, col_d2 = st.columns(2)
+    with col_d1:
+        if 'mp3_file' in st.session_state and st.session_state.get('mp3_file') and os.path.exists(st.session_state['mp3_file']):
+            with open(st.session_state['mp3_file'], "rb") as f:
+                st.download_button("🎵 Audio (MP3)", f.read(), st.session_state['mp3_file'], "audio/mpeg", use_container_width=True)
+    with col_d2:
+        with open(st.session_state['video_file'], "rb") as f:
+            st.download_button("🎬 Video (MP4)", f.read(), st.session_state['video_file'], "video/mp4", use_container_width=True)
+else:
+    st.markdown('<div class="video-container"><div style="text-align: center; padding: 2rem; color: rgba(255,255,255,0.5);"><h2 style="color: #ffd700; font-size: 18px;">🎬 Your Video Will Appear Here</h2><p style="font-size: 12px;">Configure parameters and click GENERATE.</p></div></div>', unsafe_allow_html=True)
+
+# Processamento (resto do código igual)
 if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
     progress_bar = progress_placeholder.progress(0)
     status_text = status_placeholder.empty()
@@ -415,7 +541,6 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
         
         if not df_local.empty:
             fires_per_day = df_local.groupby('acq_date').size().reset_index(name='n_fires')
-            # Criar stats convertendo tipos numpy/pandas para Python nativos
             st.session_state['stats_data'] = {
                 'total': int(len(df_local)), 
                 'days': int(len(fires_per_day)), 
@@ -423,7 +548,6 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                 'peak': int(fires_per_day['n_fires'].max())
             }
             
-            # SALVAR STATS IMEDIATAMENTE (antes de qualquer rerun)
             cache_key = st.session_state.get('current_cache_key')
             if cache_key:
                 try:
@@ -450,14 +574,14 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             images_files = []
             all_days = fires_per_day['acq_date'].tolist()
             n_days = len(fires_per_day)
-            n_fade_frames = 5  # Reduzido de 10 para 5
-            intro_frames = 15  # Reduzido de 30 para 15
+            n_fade_frames = 5
+            intro_frames = 15
             
             status_text.text("🎬 Creating intro animation...")
             for i in range(intro_frames):
                 progress = (i + 1) / intro_frames
                 progress_bar.progress(40 + int(10 * progress))
-                fig = plt.figure(figsize=(16, 9), dpi=100)  # Aumentado para 16:9
+                fig = plt.figure(figsize=(16, 9), dpi=100)
                 fig.patch.set_facecolor('black')
                 gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
                 ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
@@ -496,10 +620,9 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                 for spine in ax_map.spines.values():
                     spine.set_visible(False)
                 png_file = f"maps_png/intro_{i}.png"
-                fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0.1)  # DPI 100 + padding mínimo
+                fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0.1)
                 plt.close(fig)
                 img = Image.open(png_file).convert("RGB")
-                # Redimensionar para preencher completamente
                 img = img.resize((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
                 img.save(png_file, quality=85, optimize=True)
                 images_files.append(png_file)
@@ -516,7 +639,7 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                     frame_progress = (i * n_fade_frames + k) / total_fire_frames
                     progress_bar.progress(50 + int(40 * frame_progress))
                     alpha = (k+1)/n_fade_frames
-                    fig = plt.figure(figsize=(16, 9), dpi=100)  # 16:9 aspect ratio
+                    fig = plt.figure(figsize=(16, 9), dpi=100)
                     fig.patch.set_facecolor('black')
                     gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
                     ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
@@ -531,51 +654,42 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                     ax_map.set_xticks([])
                     ax_map.set_yticks([])
                     
-                    # VISUALIZAÇÃO CINEMATOGRÁFICA DE FOGO
                     if len(df_day) > 0:
-                        # Camada 1: Glow externo (vermelho escuro)
-                        glow_sizes = 400 + 100 * np.sin(alpha * np.pi * 2)  # Reduzido
+                        glow_sizes = 400 + 100 * np.sin(alpha * np.pi * 2)
                         ax_map.scatter(df_day[lon_col], df_day[lat_col], 
                                      c='#8B0000', s=glow_sizes, alpha=0.15 * alpha,
                                      transform=ccrs.PlateCarree())
                         
-                        # Camada 2: Halo alaranjado médio
-                        halo_sizes = 250 + 80 * np.sin(alpha * np.pi * 2)  # Reduzido
+                        halo_sizes = 250 + 80 * np.sin(alpha * np.pi * 2)
                         ax_map.scatter(df_day[lon_col], df_day[lat_col], 
                                      c='#FF4500', s=halo_sizes, alpha=0.25 * alpha,
                                      transform=ccrs.PlateCarree())
                         
-                        # Camada 3: Core laranja brilhante
-                        core_sizes = 150 + 60 * np.sin(alpha * np.pi * 2)  # Reduzido
+                        core_sizes = 150 + 60 * np.sin(alpha * np.pi * 2)
                         ax_map.scatter(df_day[lon_col], df_day[lat_col], 
                                      c='#FF8C00', s=core_sizes, alpha=0.6 * alpha,
                                      linewidths=0, transform=ccrs.PlateCarree())
                         
-                        # Camada 4: Centro amarelo intenso (variação por intensidade)
                         center_colors = plt.cm.YlOrRd(frp_norm * 0.7 + 0.3)
-                        center_sizes = 80 + 50 * np.sin(alpha * np.pi * 3) * (1 + frp_norm)  # Reduzido
+                        center_sizes = 80 + 50 * np.sin(alpha * np.pi * 3) * (1 + frp_norm)
                         ax_map.scatter(df_day[lon_col], df_day[lat_col], 
                                      c=center_colors, s=center_sizes, alpha=0.85 * alpha,
-                                     edgecolors='#FFD700', linewidths=1,  # Linewidth reduzido
+                                     edgecolors='#FFD700', linewidths=1,
                                      transform=ccrs.PlateCarree())
                         
-                        # Camada 5: Núcleo branco brilhante para focos intensos
                         high_intensity = df_day[df_day['frp'] > df_day['frp'].quantile(0.7)] if 'frp' in df_day.columns else df_day.head(int(len(df_day)*0.3))
                         if len(high_intensity) > 0:
-                            white_sizes = 60 + 40 * np.sin(alpha * np.pi * 4)  # Reduzido
+                            white_sizes = 60 + 40 * np.sin(alpha * np.pi * 4)
                             ax_map.scatter(high_intensity[lon_col], high_intensity[lat_col], 
                                          c='white', s=white_sizes, alpha=0.9 * alpha,
                                          edgecolors='#FFFF00', linewidths=1.5,
                                          transform=ccrs.PlateCarree(), marker='*', zorder=10)
-                            
-                            # Partículas ascendentes (simulando fagulhas) - REMOVIDO para otimizar
                         
-                        # Efeito de pulsação - reduzido
-                        if k % 2 == 0:  # A cada 2 frames (ao invés de 3)
-                            burst_indices = np.random.choice(len(df_day), size=min(3, len(df_day)), replace=False)  # 3 ao invés de 5
+                        if k % 2 == 0:
+                            burst_indices = np.random.choice(len(df_day), size=min(3, len(df_day)), replace=False)
                             burst_points = df_day.iloc[burst_indices]
                             ax_map.scatter(burst_points[lon_col], burst_points[lat_col],
-                                         c='#FF0000', s=500, alpha=0.2,  # Tamanho reduzido
+                                         c='#FF0000', s=500, alpha=0.2,
                                          transform=ccrs.PlateCarree())
                     
                     bar_heights = [fires_per_day.loc[fires_per_day['acq_date']==d,'n_fires'].values[0] if d<=day else 0 for d in all_days]
@@ -599,10 +713,9 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                         spine.set_visible(False)
                     ax_map.tick_params(left=False, right=False, top=False, bottom=False)
                     png_file = f"maps_png/map_{i}_{k}.png"
-                    fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0.1)  # DPI 100 + padding
+                    fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0.1)
                     plt.close(fig)
                     img = Image.open(png_file).convert("RGB")
-                    # Redimensionar mantendo aspect ratio e preenchendo o frame
                     img = img.resize((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
                     img.save(png_file, quality=85, optimize=True)
                     images_files.append(png_file)
@@ -618,7 +731,7 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             frame_durations = [intro_frame_duration] * intro_frames + [fires_frame_duration] * fires_frame_count
             
             clip = ImageSequenceClip(images_files, durations=frame_durations)
-            clip = clip.on_color(size=(1280, 720), color=(0,0,0))  # Resolução ajustada
+            clip = clip.on_color(size=(1280, 720), color=(0,0,0))
             audio_clip = AudioFileClip("fires_sound.mp3")
             
             def make_frame(t):
@@ -633,14 +746,12 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             progress_bar.progress(95)
             clip.write_videofile("fires_video.mp4", codec="libx264", audio_codec="aac", verbose=False, logger=None)
             
-            # Salvar no cache
             cache_key = st.session_state.get('current_cache_key')
             if cache_key:
                 status_text.text("💾 Saving video to cache...")
                 cached_video, cached_audio = save_to_cache(cache_key, "fires_video.mp4", "fires_sound.mp3")
                 st.session_state['video_file'] = cached_video
                 st.session_state['mp3_file'] = cached_audio
-                # Stats já foram salvas no início
             else:
                 st.session_state['video_file'] = "fires_video.mp4"
             
@@ -648,9 +759,8 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             status_text.text("✅ Complete!")
             st.session_state['generate_clicked'] = False
             
-            # Garantir que tudo foi salvo antes do rerun
             import time
-            time.sleep(0.5)  # Pequeno delay para garantir flush
+            time.sleep(0.5)
             
             progress_placeholder.empty()
             status_placeholder.empty()
