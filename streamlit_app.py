@@ -48,170 +48,194 @@ def save_to_cache(cache_key, video_src, audio_src):
     return video_dst, audio_dst
 # ============= CACHE =============
 
-st.set_page_config(page_title=f'{filename}', layout="wide", initial_sidebar_state="auto")
+st.set_page_config(page_title=f'{filename}', layout="wide", initial_sidebar_state="expanded")
 
-# Layout RESPONSIVO - Mobile First
+# Layout RESPONSIVO - Desktop original, Mobile otimizado
 st.markdown("""
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&display=swap');
         * { font-family: 'Inter', sans-serif; }
         
-        /* MOBILE FIRST - Base styles para mobile */
+        /* DESKTOP - Design original */
         .main .block-container { 
-            padding: 0.5rem !important; 
+            padding-top: 1rem !important; 
+            padding-bottom: 0rem !important; 
+            padding-left: 2rem !important; 
+            padding-right: 2rem !important; 
             max-width: 100% !important; 
         }
         
         #MainMenu, footer, header { visibility: hidden; }
         body { background: #0a0a14; color: #f5f5f5; }
         
-        /* Header adaptável */
         .main-header { 
             background: linear-gradient(135deg, #ff4444 0%, #ff8c00 50%, #ffd700 100%); 
-            padding: 1rem; 
-            border-radius: 12px; 
-            margin-bottom: 0.8rem; 
-            box-shadow: 0 4px 20px rgba(255, 68, 68, 0.4); 
+            padding: 1.5rem 2rem; 
+            border-radius: 16px; 
+            margin-bottom: 1rem; 
+            box-shadow: 0 8px 32px rgba(255, 68, 68, 0.4); 
         }
         .main-header h1 { 
             margin: 0; 
             color: white; 
-            font-size: 20px; 
+            font-size: 28px; 
             font-weight: 700; 
         }
         .main-header p { 
-            margin: 0.2rem 0 0 0; 
+            margin: 0.3rem 0 0 0; 
             color: rgba(255,255,255,0.9); 
-            font-size: 11px; 
-        }
-        
-        /* Cards de stats - grid responsivo */
-        .stats-grid { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 0.4rem; 
-            margin: 0.5rem 0; 
+            font-size: 13px; 
         }
         
         .stat-card { 
             background: linear-gradient(135deg, rgba(255, 68, 68, 0.12) 0%, rgba(255, 140, 0, 0.08) 100%); 
-            padding: 0.5rem; 
-            border-radius: 8px; 
+            padding: 0.6rem 0.8rem; 
+            border-radius: 10px; 
             border-left: 3px solid #ff4444; 
+            margin-bottom: 0.5rem; 
         }
         .metric-label { 
-            font-size: 8px; 
+            font-size: 9px; 
             color: #ff8c00; 
             font-weight: 600; 
             text-transform: uppercase; 
         }
         .metric-value { 
-            font-size: 14px; 
+            font-size: 16px; 
             color: #ffd700; 
             font-weight: 700; 
         }
         
-        /* Vídeo container responsivo */
         .video-container { 
             background: #000; 
-            border-radius: 12px; 
-            overflow: hidden; 
-            box-shadow: 0 8px 24px rgba(255, 68, 68, 0.4); 
+            border-radius: 16px; 
+            overflow: visible; 
+            box-shadow: 0 12px 40px rgba(255, 68, 68, 0.5); 
             border: 2px solid rgba(255, 140, 0, 0.3); 
-            margin: 0.5rem 0;
-            min-height: 200px;
-            display: flex;
-            align-items: center;
-            justify-content: center;
+            height: calc(100vh - 220px); 
+            display: flex; 
+            align-items: center; 
+            justify-content: center; 
+            padding: 0.5rem; 
         }
         
-        /* Botões responsivos */
         .stButton>button { 
             background: linear-gradient(135deg, #ff4444 0%, #ff8c00 100%) !important; 
             color: white !important; 
             border: none !important; 
-            padding: 0.6rem 1rem !important; 
-            border-radius: 8px !important; 
+            padding: 0.6rem 1.2rem !important; 
+            border-radius: 10px !important; 
             font-weight: 600 !important; 
-            width: 100% !important;
-            font-size: 13px !important;
+            width: 100% !important; 
         }
         
-        /* Info boxes responsivas */
         .info-box { 
             background: linear-gradient(135deg, rgba(255, 68, 68, 0.15) 0%, rgba(255, 140, 0, 0.1) 100%); 
-            border-left: 3px solid #ff4444; 
-            padding: 0.6rem; 
-            border-radius: 8px; 
-            margin: 0.5rem 0; 
-            font-size: 11px; 
+            border-left: 4px solid #ff4444; 
+            padding: 0.8rem; 
+            border-radius: 10px; 
+            margin: 0.8rem 0; 
+            font-size: 12px; 
         }
         .info-box strong { color: #ffd700; }
-        
-        /* Ajustes para inputs do Streamlit */
-        .stNumberInput, .stSlider, .stDateInput {
-            font-size: 12px !important;
+        .stats-grid { 
+            display: grid; 
+            grid-template-columns: 1fr 1fr; 
+            gap: 0.5rem; 
+            margin-bottom: 0.8rem; 
         }
         
-        /* Sidebar responsiva */
-        [data-testid="stSidebar"] {
-            background: #0a0a14;
-        }
-        
-        /* TABLET - a partir de 768px */
-        @media (min-width: 768px) {
+        /* MOBILE - Design otimizado */
+        @media (max-width: 767px) {
             .main .block-container { 
-                padding: 1rem 1.5rem !important; 
+                padding: 0.5rem !important; 
             }
-            .main-header h1 { font-size: 24px; }
-            .main-header p { font-size: 12px; }
-            .stat-card { padding: 0.6rem; }
-            .metric-label { font-size: 9px; }
-            .metric-value { font-size: 16px; }
-            .info-box { font-size: 12px; padding: 0.7rem; }
-            .video-container { min-height: 300px; }
+            
+            .main-header { 
+                padding: 1rem; 
+                border-radius: 12px; 
+                margin-bottom: 0.8rem; 
+            }
+            .main-header h1 { 
+                font-size: 20px; 
+            }
+            .main-header p { 
+                font-size: 11px; 
+            }
+            
+            .video-container { 
+                height: auto;
+                min-height: 200px;
+                max-height: 300px;
+                border-radius: 12px;
+                margin: 0.5rem 0;
+            }
+            
+            .stat-card { 
+                padding: 0.5rem; 
+                border-radius: 8px; 
+            }
+            .metric-label { 
+                font-size: 8px; 
+            }
+            .metric-value { 
+                font-size: 14px; 
+            }
+            
+            .info-box { 
+                font-size: 11px; 
+                padding: 0.6rem; 
+                margin: 0.5rem 0;
+            }
+            
+            .stButton>button {
+                padding: 0.6rem 1rem !important;
+                font-size: 13px !important;
+            }
+            
+            /* Sidebar mobile - compacto */
+            [data-testid="stSidebar"] {
+                padding-top: 0.5rem !important;
+            }
+            
+            /* Video player do Streamlit - melhor controle mobile */
+            video {
+                max-height: 250px !important;
+                object-fit: contain;
+            }
+        }
+        
+        /* TABLET - meia-tinta */
+        @media (min-width: 768px) and (max-width: 1023px) {
+            .main .block-container { 
+                padding: 1rem !important; 
+            }
+            
+            .video-container { 
+                height: auto;
+                min-height: 300px;
+                max-height: 400px;
+            }
+            
             .stats-grid { 
                 grid-template-columns: repeat(4, 1fr); 
-                gap: 0.5rem; 
             }
         }
         
-        /* DESKTOP - a partir de 1024px */
-        @media (min-width: 1024px) {
-            .main .block-container { 
-                padding: 1rem 2rem !important; 
-            }
-            .main-header { 
-                padding: 1.5rem 2rem; 
-                border-radius: 16px; 
-                margin-bottom: 1rem; 
-            }
-            .main-header h1 { font-size: 28px; }
-            .main-header p { font-size: 13px; }
-            .stat-card { padding: 0.6rem 0.8rem; }
-            .metric-label { font-size: 9px; }
-            .metric-value { font-size: 16px; }
-            .info-box { font-size: 12px; padding: 0.8rem; }
-            .video-container { 
-                min-height: 350px;
-                max-height: 500px;
-            }
-            .stButton>button {
-                font-size: 14px !important;
-            }
-        }
-        
-        /* Orientação landscape mobile */
+        /* Landscape mobile */
         @media (max-width: 767px) and (orientation: landscape) {
             .video-container { 
-                min-height: 150px;
-                max-height: 60vh;
+                max-height: 200px;
             }
             .main-header { 
-                padding: 0.5rem; 
+                padding: 0.5rem 1rem; 
             }
-            .main-header h1 { font-size: 16px; }
-            .main-header p { font-size: 10px; }
+            .main-header h1 { 
+                font-size: 16px; 
+            }
+            video {
+                max-height: 180px !important;
+            }
         }
     </style>
 """, unsafe_allow_html=True)
@@ -397,28 +421,29 @@ st.markdown('<div class="main-header"><h1>🔥 Hear the Fire</h1><p>Transform fi
 progress_placeholder = st.empty()
 status_placeholder = st.empty()
 
-# CONTROLES SEMPRE VISÍVEIS - Interface compacta
-st.markdown("### ⚙️ Settings")
-
-col1, col2 = st.columns(2)
-with col1:
-    st.markdown("**📍 Location**")
-    latitude_center = st.number_input("Latitude", value=-19.0, step=0.1, format="%.2f", key="lat")
-    longitude_center = st.number_input("Longitude", value=-59.4, step=0.1, format="%.2f", key="lon")
-with col2:
-    st.markdown("**🎯 Parameters**")
-    radius_km = st.slider("Radius (km)", 50, 500, 150, 50, key="radius")
-    day_range = st.slider("Days", min_value=1, max_value=10, value=10, key="days")
-
-data_date = st.date_input("📅 Start date", value=datetime(2019, 8, 14), key="date").strftime("%Y-%m-%d")
-
-total_duration_sec = 1.2*day_range
+st.sidebar.markdown("### ⚙️ Settings")
 
 # API Key segura
 try:
     map_key = st.secrets["NASA_FIRMS_KEY"]
 except:
     map_key = "a4abee84e580a96ff5ba9bd54cd11a8d"
+
+col1, col2 = st.sidebar.columns(2)
+with col1:
+    latitude_center = st.number_input("Latitude", value=-19.0, step=0.1)
+with col2:
+    longitude_center = st.number_input("Longitude", value=-59.4, step=0.1)
+
+radius_km = st.sidebar.slider("Radius (km)", 50, 500, 150, 50)
+
+col1, col2 = st.sidebar.columns(2)
+with col1:
+    data_date = st.date_input("Start date", value=datetime(2019, 8, 14)).strftime("%Y-%m-%d")
+with col2:
+    day_range = st.slider("Days", min_value=1, max_value=10, value=10)
+
+total_duration_sec = 1.2*day_range
 
 os.makedirs("maps_png", exist_ok=True)
 
@@ -458,61 +483,56 @@ if cached_video:
             except:
                 pass
 
-# LAYOUT MOBILE-FIRST: Uma coluna em mobile, duas em desktop
-st.markdown('<div class="info-box"><strong>🎵 How it works:</strong> Each day becomes a musical chord. More fires = richer sound. <strong>Listen to the data.</strong></div>', unsafe_allow_html=True)
+# LAYOUT DESKTOP: Sidebar esquerda + Vídeo direita (original)
+col_left, col_right = st.columns([1, 3], gap="medium")
 
-if cached_video:
-    st.markdown('<div class="info-box" style="border-left-color: #00ff88;"><strong>⚡ Cache found!</strong> Video ready to load instantly.</div>', unsafe_allow_html=True)
-
-if st.button("🔥 GENERATE", key="generate_btn"):
+with col_left:
+    st.markdown('<div class="info-box"><strong>🎵 How it works:</strong> Each day becomes a musical chord. More fires = richer sound. <strong>Listen to the data.</strong></div>', unsafe_allow_html=True)
+    
     if cached_video:
-        st.session_state['video_file'] = cached_video
-        st.session_state['mp3_file'] = cached_audio
-        st.session_state['generate_clicked'] = False
-        stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
-        if os.path.exists(stats_file):
-            try:
-                with open(stats_file, 'r') as f:
-                    st.session_state['stats_data'] = json.load(f)
-            except:
-                pass
-        st.rerun()
-    else:
-        st.session_state['current_cache_key'] = current_cache_key
-        st.session_state['generate_clicked'] = True
+        st.markdown('<div class="info-box" style="border-left-color: #00ff88;"><strong>⚡ Cache found!</strong> Video ready to load instantly.</div>', unsafe_allow_html=True)
+    
+    if st.button("🔥 GENERATE", key="generate_btn"):
+        if cached_video:
+            st.session_state['video_file'] = cached_video
+            st.session_state['mp3_file'] = cached_audio
+            st.session_state['generate_clicked'] = False
+            stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
+            if os.path.exists(stats_file):
+                try:
+                    with open(stats_file, 'r') as f:
+                        st.session_state['stats_data'] = json.load(f)
+                except:
+                    pass
+            st.rerun()
+        else:
+            st.session_state['current_cache_key'] = current_cache_key
+            st.session_state['generate_clicked'] = True
+    
+    if 'video_file' in st.session_state and st.session_state.get('video_file') and os.path.exists(st.session_state['video_file']):
+        st.markdown("#### 📊 Stats")
+        if 'stats_data' in st.session_state:
+            stats = st.session_state['stats_data']
+            st.markdown(f'<div class="stats-grid"><div class="stat-card"><div class="metric-label">🔥 Total</div><div class="metric-value">{stats["total"]}</div></div><div class="stat-card"><div class="metric-label">📊 Days</div><div class="metric-value">{stats["days"]}</div></div><div class="stat-card"><div class="metric-label">📈 Avg</div><div class="metric-value">{stats["avg"]:.0f}</div></div><div class="stat-card"><div class="metric-label">⚡ Peak</div><div class="metric-value">{stats["peak"]}</div></div></div>', unsafe_allow_html=True)
+        
+        st.markdown("#### 💾 Download")
+        col_d1, col_d2 = st.columns(2)
+        with col_d1:
+            if 'mp3_file' in st.session_state and st.session_state.get('mp3_file') and os.path.exists(st.session_state['mp3_file']):
+                with open(st.session_state['mp3_file'], "rb") as f:
+                    st.download_button("🎵 MP3", f.read(), st.session_state['mp3_file'], "audio/mpeg", use_container_width=True)
+        with col_d2:
+            with open(st.session_state['video_file'], "rb") as f:
+                st.download_button("🎬 MP4", f.read(), st.session_state['video_file'], "video/mp4", use_container_width=True)
 
-# VÍDEO E STATS - Layout responsivo
-if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
-    st.markdown('<div class="video-container"><div style="text-align: center; padding: 2rem; color: rgba(255,255,255,0.8);"><h2 style="color: #ffd700; font-size: 18px;">⏳ Generating...</h2><p style="font-size: 12px;">Please wait.</p></div></div>', unsafe_allow_html=True)
-elif 'video_file' in st.session_state and st.session_state.get('video_file') and os.path.exists(st.session_state['video_file']):
-    st.markdown("### 🎬 Your Creation")
-    st.video(st.session_state['video_file'])
-    
-    # Stats abaixo do vídeo em mobile
-    if 'stats_data' in st.session_state:
-        st.markdown("#### 📊 Statistics")
-        stats = st.session_state['stats_data']
-        st.markdown(f'''
-        <div class="stats-grid">
-            <div class="stat-card"><div class="metric-label">🔥 Total</div><div class="metric-value">{stats["total"]}</div></div>
-            <div class="stat-card"><div class="metric-label">📊 Days</div><div class="metric-value">{stats["days"]}</div></div>
-            <div class="stat-card"><div class="metric-label">📈 Avg</div><div class="metric-value">{stats["avg"]:.0f}</div></div>
-            <div class="stat-card"><div class="metric-label">⚡ Peak</div><div class="metric-value">{stats["peak"]}</div></div>
-        </div>
-        ''', unsafe_allow_html=True)
-    
-    # Downloads
-    st.markdown("#### 💾 Download")
-    col_d1, col_d2 = st.columns(2)
-    with col_d1:
-        if 'mp3_file' in st.session_state and st.session_state.get('mp3_file') and os.path.exists(st.session_state['mp3_file']):
-            with open(st.session_state['mp3_file'], "rb") as f:
-                st.download_button("🎵 Audio (MP3)", f.read(), st.session_state['mp3_file'], "audio/mpeg", use_container_width=True)
-    with col_d2:
-        with open(st.session_state['video_file'], "rb") as f:
-            st.download_button("🎬 Video (MP4)", f.read(), st.session_state['video_file'], "video/mp4", use_container_width=True)
-else:
-    st.markdown('<div class="video-container"><div style="text-align: center; padding: 2rem; color: rgba(255,255,255,0.5);"><h2 style="color: #ffd700; font-size: 18px;">🎬 Your Video Will Appear Here</h2><p style="font-size: 12px;">Configure parameters and click GENERATE.</p></div></div>', unsafe_allow_html=True)
+with col_right:
+    if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
+        st.markdown('<div class="video-container"><div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.8);"><h2 style="color: #ffd700;">⏳ Generating...</h2><p>Please wait.</p></div></div>', unsafe_allow_html=True)
+    elif 'video_file' in st.session_state and st.session_state.get('video_file') and os.path.exists(st.session_state['video_file']):
+        st.markdown("### 🎬 Your Creation")
+        st.video(st.session_state['video_file'])
+    else:
+        st.markdown('<div class="video-container"><div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.5);"><h2 style="color: #ffd700;">🎬 Your Video Will Appear Here</h2><p>Configure parameters and click GENERATE.</p></div></div>', unsafe_allow_html=True)
 
 # Processamento (resto do código igual)
 if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
