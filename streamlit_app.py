@@ -302,14 +302,20 @@ with col_left:
     current_cache_key = generate_cache_key(cache_params)
     cached_video, cached_audio = get_cached_files(current_cache_key)
     
-    # Se tem cache, carregar stats automaticamente
+    # Se tem cache, carregar TUDO automaticamente
     if cached_video:
+        # Carregar vídeo e áudio no session_state
+        if 'video_file' not in st.session_state or st.session_state.get('video_file') != cached_video:
+            st.session_state['video_file'] = cached_video
+            st.session_state['mp3_file'] = cached_audio
+        
+        # Carregar stats
         stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
-        if os.path.exists(stats_file) and 'stats_data' not in st.session_state:
+        if os.path.exists(stats_file):
             try:
                 with open(stats_file, 'r') as f:
                     st.session_state['stats_data'] = json.load(f)
-            except (json.JSONDecodeError, Exception):
+            except:
                 pass
     
     # Mostrar se tem cache disponível
