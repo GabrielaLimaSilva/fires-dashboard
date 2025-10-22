@@ -327,16 +327,16 @@ with col_left:
             if os.path.exists(stats_file):
                 try:
                     with open(stats_file, 'r') as f:
-                        loaded_stats = json.load(f)
-                        st.session_state['stats_data'] = loaded_stats
+                        file_content = f.read()
+                        if file_content.strip():  # Verificar se não está vazio
+                            loaded_stats = json.loads(file_content)
+                            st.session_state['stats_data'] = loaded_stats
+                        else:
+                            st.warning("⚠️ Stats file is empty")
                 except (json.JSONDecodeError, Exception) as e:
-                    # Se falhar, tenta criar stats padrão
-                    st.session_state['stats_data'] = {
-                        'total': 0,
-                        'days': 0,
-                        'avg': 0.0,
-                        'peak': 0
-                    }
+                    st.warning(f"⚠️ Could not load stats: {e}")
+            else:
+                st.warning(f"⚠️ Stats file not found: {stats_file}")
             st.rerun()
         else:
             st.session_state['current_cache_key'] = current_cache_key
@@ -347,6 +347,16 @@ with col_left:
         if 'stats_data' in st.session_state:
             stats = st.session_state['stats_data']
             st.markdown(f'<div class="stats-grid"><div class="stat-card"><div class="metric-label">🔥 Total</div><div class="metric-value">{stats["total"]}</div></div><div class="stat-card"><div class="metric-label">📊 Days</div><div class="metric-value">{stats["days"]}</div></div><div class="stat-card"><div class="metric-label">📈 Avg</div><div class="metric-value">{stats["avg"]:.0f}</div></div><div class="stat-card"><div class="metric-label">⚡ Peak</div><div class="metric-value">{stats["peak"]}</div></div></div>', unsafe_allow_html=True)
+        else:
+            st.warning("⚠️ Stats not loaded in session_state")
+            # Mostrar o que tem no arquivo
+            stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
+            if os.path.exists(stats_file):
+                with open(stats_file, 'r') as f:
+                    content = f.read()
+                    st.code(f"Stats file content:\n{content}")
+            else:
+                st.error(f"Stats file not found: {stats_file}")
         
         st.markdown("#### 💾 Download")
         col_d1, col_d2 = st.columns(2)
@@ -604,14 +614,26 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                 if 'stats_data' in st.session_state:
                     try:
                         stats_file = os.path.join(CACHE_DIR, f"stats_{cache_key}.json")
+                        stats_to_save = st.session_state['stats_data']
+                        
+                        # Debug: mostrar o que vai salvar
+                        status_text.text(f"💾 Saving stats: {stats_to_save}")
+                        
                         with open(stats_file, 'w') as f:
-                            json.dump(st.session_state['stats_data'], f, indent=2)
+                            json.dump(stats_to_save, f, indent=2)
                             f.flush()  # Garantir que foi escrito no disco
+                        
                         # Verificar se salvou corretamente
-                        if not os.path.exists(stats_file):
+                        if os.path.exists(stats_file):
+                            with open(stats_file, 'r') as f:
+                                verify = json.load(f)
+                                status_text.text(f"✅ Stats saved and verified: {verify}")
+                        else:
                             st.warning("⚠️ Stats file not saved properly")
                     except Exception as e:
                         st.warning(f"⚠️ Could not save stats: {e}")
+                else:
+                    st.warning("⚠️ No stats_data in session_state to save")
                 st.session_state['video_file'] = cached_video
                 st.session_state['mp3_file'] = cached_audio
             else:
