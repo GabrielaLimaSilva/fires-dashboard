@@ -286,37 +286,39 @@ total_duration_sec = 1.2*day_range
 
 os.makedirs("maps_png", exist_ok=True)
 
+# ============= CARREGAR CACHE AUTOMATICAMENTE (ANTES DAS COLUNAS) =============
+# Gerar cache key com parâmetros atuais
+cache_params = {
+    'lat': latitude_center,
+    'lon': longitude_center,
+    'radius': radius_km,
+    'date': data_date,
+    'days': day_range
+}
+current_cache_key = generate_cache_key(cache_params)
+cached_video, cached_audio = get_cached_files(current_cache_key)
+
+# Se tem cache, carregar TUDO automaticamente
+if cached_video:
+    # Carregar vídeo e áudio no session_state
+    if 'video_file' not in st.session_state or st.session_state.get('video_file') != cached_video:
+        st.session_state['video_file'] = cached_video
+        st.session_state['mp3_file'] = cached_audio
+    
+    # Carregar stats
+    stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
+    if os.path.exists(stats_file):
+        try:
+            with open(stats_file, 'r') as f:
+                st.session_state['stats_data'] = json.load(f)
+        except:
+            pass
+# ============= FIM CARREGAMENTO AUTOMÁTICO =============
+
 col_left, col_right = st.columns([1, 3], gap="medium")
 
 with col_left:
     st.markdown('<div class="info-box"><strong>🎵 How it works:</strong> Each day becomes a musical chord. More fires = richer sound. <strong>Listen to the data.</strong></div>', unsafe_allow_html=True)
-    
-    # Gerar cache key com parâmetros atuais
-    cache_params = {
-        'lat': latitude_center,
-        'lon': longitude_center,
-        'radius': radius_km,
-        'date': data_date,
-        'days': day_range
-    }
-    current_cache_key = generate_cache_key(cache_params)
-    cached_video, cached_audio = get_cached_files(current_cache_key)
-    
-    # Se tem cache, carregar TUDO automaticamente
-    if cached_video:
-        # Carregar vídeo e áudio no session_state
-        if 'video_file' not in st.session_state or st.session_state.get('video_file') != cached_video:
-            st.session_state['video_file'] = cached_video
-            st.session_state['mp3_file'] = cached_audio
-        
-        # Carregar stats
-        stats_file = os.path.join(CACHE_DIR, f"stats_{current_cache_key}.json")
-        if os.path.exists(stats_file):
-            try:
-                with open(stats_file, 'r') as f:
-                    st.session_state['stats_data'] = json.load(f)
-            except:
-                pass
     
     # Mostrar se tem cache disponível
     if cached_video:
