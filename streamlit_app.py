@@ -15,6 +15,8 @@ import cartopy.feature as cfeature
 from PIL import Image
 from datetime import datetime
 from pydub.utils import which
+import hashlib
+import json
 
 AudioSegment.converter = which("ffmpeg")
 AudioSegment.ffprobe = which("ffprobe")
@@ -45,10 +47,43 @@ st.markdown("""
         .info-box { background: linear-gradient(135deg, rgba(255, 68, 68, 0.15) 0%, rgba(255, 140, 0, 0.1) 100%); border-left: 4px solid #ff4444; padding: 0.8rem; border-radius: 10px; margin: 0.8rem 0; font-size: 12px; }
         .info-box strong { color: #ffd700; }
         .stats-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; margin-bottom: 0.8rem; }
+        
+        .cache-badge { display: inline-block; background: #00ff88; color: #000; padding: 0.3rem 0.6rem; border-radius: 6px; font-size: 11px; font-weight: 700; margin-left: 0.5rem; }
     </style>
 """, unsafe_allow_html=True)
 
 plt.style.use("dark_background")
+
+# ============= SISTEMA DE CACHE =============
+CACHE_DIR = "video_cache"
+os.makedirs(CACHE_DIR, exist_ok=True)
+
+def generate_cache_key(params):
+    """Gera um hash único baseado nos parâmetros"""
+    # Serializa os parâmetros de forma consistente
+    params_str = json.dumps(params, sort_keys=True)
+    return hashlib.md5(params_str.encode()).hexdigest()
+
+def get_cached_video(cache_key):
+    """Verifica se existe vídeo em cache e retorna o caminho"""
+    video_path = os.path.join(CACHE_DIR, f"video_{cache_key}.mp4")
+    audio_path = os.path.join(CACHE_DIR, f"audio_{cache_key}.mp3")
+    
+    if os.path.exists(video_path) and os.path.exists(audio_path):
+        return video_path, audio_path
+    return None, None
+
+def save_to_cache(cache_key, video_path, audio_path):
+    """Salva o vídeo e áudio no cache"""
+    cached_video = os.path.join(CACHE_DIR, f"video_{cache_key}.mp4")
+    cached_audio = os.path.join(CACHE_DIR, f"audio_{cache_key}.mp3")
+    
+    # Copia os arquivos para o cache
+    import shutil
+    shutil.copy2(video_path, cached_video)
+    shutil.copy2(audio_path, cached_audio)
+    
+    return cached_video, cached_audio
 
 # Funções de áudio originais
 def generate_tone(frequency, duration_ms, waveform='sine', amplitude=0.5):
@@ -133,269 +168,277 @@ def create_melodic_phrase(base_freq, duration_ms, scale_notes, phrase_type='asce
         melody = melody.overlay(note, position=i * note_duration)
     return melody
 
-def compose_fire_symphony(fires_per_day_df, total_duration_sec=14):
-    n_days = len(fires_per_day_df)
-    duration_per_day_ms = int((total_duration_sec * 1000) / n_days)
-    scale_notes = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25, 783.99, 880.00]
-    max_fires = fires_per_day_df['n_fires'].max()
-    min_fires = fires_per_day_df['n_fires'].min()
-    mean_fires = fires_per_day_df['n_fires'].mean()
-    intro_days = min(2, n_days // 4)
-    outro_days = min(2, n_days // 4)
-    ambient_layer = create_ambient_layer(total_duration_sec * 1000, intensity=0.25)
-    melody_segments = []
-    bass_segments = []
-    rhythm_segments = []
+def create_fire_soundscape(fire_data, base_duration_sec=30.0):
+    n = len(fire_data)
+    if n == 0:
+        return AudioSegment.silent(duration=int(base_duration_sec * 1000))
     
-    for day_idx, (day, n_fires) in enumerate(fires_per_day_df.values):
-        intensity = np.interp(n_fires, [min_fires, max_fires], [0.2, 0.8])
-        if day_idx < intro_days:
-            section = 'intro'
-        elif day_idx >= n_days - outro_days:
-            section = 'outro'
-        else:
-            section = 'main'
-        
-        note_idx = int(np.interp(intensity, [0, 1], [0, len(scale_notes) - 3]))
-        base_freq = scale_notes[note_idx]
-        
-        if section == 'intro':
-            intervals = [1, 1.5, 2]
-            waveform = 'pad'
-            chord_amplitude = 0.25 + intensity * 0.15
-        elif section == 'outro':
-            intervals = [1, 1.25, 1.5]
-            waveform = 'sine'
-            chord_amplitude = 0.3
-        else:
-            if intensity < 0.4:
-                intervals = [1, 1.25, 1.5]
-            elif intensity < 0.7:
-                intervals = [1, 1.25, 1.5, 2]
-            else:
-                intervals = [1, 1.2, 1.5, 1.8, 2]
-            waveform = 'pad' if intensity > 0.5 else 'sine'
-            chord_amplitude = 0.3 + intensity * 0.2
-        
-        chord = AudioSegment.silent(duration=duration_per_day_ms)
-        pan_positions = [-0.3, 0, 0.3, -0.15, 0.15]
-        frequencies = [base_freq * x for x in intervals]
-        
-        for i, freq in enumerate(frequencies):
-            note = generate_tone(freq, duration_per_day_ms, waveform, chord_amplitude)
-            attack = int(duration_per_day_ms * 0.15)
-            release = int(duration_per_day_ms * 0.6)
-            note = note.fade_in(attack).fade_out(release).pan(pan_positions[i % len(pan_positions)])
-            chord = chord.overlay(note)
-        
-        if intensity > 0.6 and section == 'main':
-            delay_ms = int(duration_per_day_ms * 0.4)
-            chord = chord.overlay(chord - 10, position=delay_ms)
-        
-        melody_segments.append(chord)
-        bass_segments.append(create_bass_line(base_freq, duration_per_day_ms, 'walking' if intensity > 0.6 else 'pulse'))
-        rhythm_segments.append(create_rhythm_layer(duration_per_day_ms, intensity, 'groove' if intensity > 0.5 else 'ambient'))
-        
-        if day_idx > 0 and day_idx % 3 == 0 and section == 'main':
-            prev_intensity = np.interp(fires_per_day_df.iloc[day_idx - 1]['n_fires'], [min_fires, max_fires], [0.2, 0.8])
-            if intensity > prev_intensity:
-                phrase = create_melodic_phrase(base_freq * 2, duration_per_day_ms, scale_notes, 'ascending') - 12
-                chord = chord.overlay(phrase)
+    total_frp = fire_data['frp'].sum() if 'frp' in fire_data.columns else n * 10.0
+    avg_frp = total_frp / n
+    max_frp = fire_data['frp'].max() if 'frp' in fire_data.columns else 100.0
+    intensity = min(avg_frp / 50.0, 2.0)
+    duration_scale = min(1.0 + (intensity - 1.0) * 0.5, 2.0)
+    total_duration_sec = base_duration_sec * duration_scale
+    total_duration_ms = int(total_duration_sec * 1000)
     
-    melody_track = sum(melody_segments)
-    bass_track = sum(bass_segments)
-    rhythm_track = sum(rhythm_segments)
-    final_mix = melody_track.overlay(bass_track - 2).overlay(rhythm_track - 5).overlay(ambient_layer - 6)
-    intro_fade = int(total_duration_sec * 1000 * 0.08)
-    outro_fade = int(total_duration_sec * 1000 * 0.15)
-    final_mix = final_mix.fade_in(intro_fade).fade_out(outro_fade).apply_gain(-2).normalize(headroom=0.5)
-    reverb = final_mix - 20
-    final_mix = final_mix.overlay(reverb, position=80)
-    return final_mix
+    root_freq = 110
+    scale_notes = [root_freq, root_freq*9/8, root_freq*5/4, root_freq*4/3, root_freq*3/2, root_freq*5/3, root_freq*15/8, root_freq*2]
+    
+    layers = []
+    ambient = create_ambient_layer(total_duration_ms, intensity=min(intensity * 0.6, 1.0))
+    layers.append(ambient)
+    
+    if intensity > 0.3:
+        bass = create_bass_line(root_freq, total_duration_ms, pattern='pulse' if intensity > 0.7 else 'sustained')
+        layers.append(bass)
+    
+    segment_count = max(3, int(n / 20))
+    segment_duration_ms = total_duration_ms // segment_count
+    
+    for i in range(segment_count):
+        segment_intensity = intensity * (1.0 + 0.3 * np.sin(2 * np.pi * i / segment_count))
+        freq = root_freq * (1.2 ** (i % 5))
+        waveform_choice = 'pad' if segment_intensity > 0.7 else 'sine'
+        tone = generate_tone(freq, segment_duration_ms, waveform=waveform_choice, amplitude=min(segment_intensity, 1.0))
+        tone = tone.fade_in(int(segment_duration_ms * 0.2)).fade_out(int(segment_duration_ms * 0.3))
+        layers.append(tone)
+    
+    if intensity > 0.5:
+        rhythm = create_rhythm_layer(total_duration_ms, intensity=min(intensity * 0.8, 1.0), pattern='groove' if intensity > 0.8 else 'ambient')
+        layers.append(rhythm)
+    
+    if intensity > 0.6:
+        melody_duration_ms = total_duration_ms // 3
+        phrase1 = create_melodic_phrase(root_freq * 2, melody_duration_ms, scale_notes, 'ascending')
+        phrase2 = create_melodic_phrase(root_freq * 2, melody_duration_ms, scale_notes, 'arpeggio')
+        phrase3 = create_melodic_phrase(root_freq * 2, melody_duration_ms, scale_notes, 'descending')
+        melody = phrase1 + phrase2 + phrase3
+        melody = melody.apply_gain(-10)
+        layers.append(melody)
+    
+    soundscape = AudioSegment.silent(duration=total_duration_ms)
+    for layer in layers:
+        soundscape = soundscape.overlay(layer)
+    
+    soundscape = soundscape.normalize()
+    max_gain = -3.0
+    current_dBFS = soundscape.dBFS
+    gain_adjustment = max_gain - current_dBFS
+    soundscape = soundscape.apply_gain(min(gain_adjustment, 6.0))
+    
+    return soundscape, total_duration_sec
 
-def distance_km(lat1, lon1, lat2, lon2):
-    R = 6371
-    dlat = np.radians(lat2 - lat1)
-    dlon = np.radians(lon2 - lon1)
-    a = np.sin(dlat/2)**2 + np.cos(np.radians(lat1))*np.cos(np.radians(lat2))*np.sin(dlon/2)**2
-    return 2 * R * np.arcsin(np.sqrt(a))
+# Header
+st.markdown("""
+    <div class="main-header">
+        <h1>🔥 Hear the Fire - Visualize and Sonify Global Wildfires</h1>
+        <p>Transform NASA FIRMS fire data into immersive audiovisual experiences</p>
+    </div>
+""", unsafe_allow_html=True)
 
-TARGET_WIDTH = 1280
-TARGET_HEIGHT = 720
+# Inicializa session state
+if 'video_file' not in st.session_state:
+    st.session_state['video_file'] = None
+if 'generate_clicked' not in st.session_state:
+    st.session_state['generate_clicked'] = False
+if 'is_cached' not in st.session_state:
+    st.session_state['is_cached'] = False
 
-st.markdown('<div class="main-header"><h1>🔥 Hear the Fire</h1><p>Transform fire data into an immersive audiovisual experience</p></div>', unsafe_allow_html=True)
-
-# BARRA DE PROGRESSO NO TOPO - criar placeholders sempre
-progress_placeholder = st.empty()
-status_placeholder = st.empty()
-
-st.sidebar.markdown("### ⚙️ Settings")
-
-# API Key segura - usar secrets do Streamlit
-try:
-    map_key = st.secrets["NASA_FIRMS_KEY"]
-except:
-    # Fallback para desenvolvimento local - criar arquivo .streamlit/secrets.toml
-    map_key = "a4abee84e580a96ff5ba9bd54cd11a8d"
-
-
-col1, col2 = st.sidebar.columns(2)
-with col1:
-    latitude_center = st.number_input("Latitude", value=-19.0, step=0.1)
-with col2:
-    longitude_center = st.number_input("Longitude", value=-59.4, step=0.1)
-
-radius_km = st.sidebar.slider("Radius (km)", 50, 1000, 150, 50)
-
-col1, col2 = st.sidebar.columns(2)
-with col1:
-    data_date = st.date_input("Start date", value=datetime(2019, 8, 14)).strftime("%Y-%m-%d")
-with col2:
-    day_range = st.number_input("Days", value=10, min_value=1, max_value=30)
-
-total_duration_sec = 1.2*day_range
-
-os.makedirs("maps_png", exist_ok=True)
-
-col_left, col_right = st.columns([1, 3], gap="medium")
+col_left, col_right = st.columns([1, 3])
 
 with col_left:
-    st.markdown('<div class="info-box"><strong>🎵 How it works:</strong> Each day becomes a musical chord. More fires = richer sound. <strong>Listen to the data.</strong></div>', unsafe_allow_html=True)
+    st.markdown("### 🎛️ Configuration")
     
-    if st.button("🔥 GENERATE", key="generate_btn"):
+    country = st.text_input("🌍 Country", value="Brazil", help="Country name for fire data")
+    
+    date_col1, date_col2 = st.columns(2)
+    with date_col1:
+        start_date = st.date_input("📅 Start Date", value=pd.to_datetime("2024-01-01"))
+    with date_col2:
+        end_date = st.date_input("📅 End Date", value=pd.to_datetime("2024-01-31"))
+    
+    st.markdown("---")
+    
+    # Criar dicionário de parâmetros para o cache
+    current_params = {
+        'country': country,
+        'start_date': str(start_date),
+        'end_date': str(end_date)
+    }
+    
+    # Gerar cache key
+    cache_key = generate_cache_key(current_params)
+    
+    # Verificar se existe em cache
+    cached_video, cached_audio = get_cached_video(cache_key)
+    
+    if cached_video:
+        st.markdown("""
+            <div class="info-box">
+                ✨ <strong>Cache Found!</strong><br>
+                Video already generated for these parameters. Loading instantly!
+            </div>
+        """, unsafe_allow_html=True)
+        st.session_state['is_cached'] = True
+    else:
+        st.session_state['is_cached'] = False
+    
+    if st.button("🎬 Generate Visualization", type="primary"):
         st.session_state['generate_clicked'] = True
-    
-    if 'video_file' in st.session_state and os.path.exists(st.session_state.get('video_file', '')):
-        st.markdown("#### 📊 Stats")
-        if 'stats_data' in st.session_state:
-            stats = st.session_state['stats_data']
-            st.markdown(f'<div class="stats-grid"><div class="stat-card"><div class="metric-label">🔥 Total</div><div class="metric-value">{stats["total"]}</div></div><div class="stat-card"><div class="metric-label">📊 Days</div><div class="metric-value">{stats["days"]}</div></div><div class="stat-card"><div class="metric-label">📈 Avg</div><div class="metric-value">{stats["avg"]:.0f}</div></div><div class="stat-card"><div class="metric-label">⚡ Peak</div><div class="metric-value">{stats["peak"]}</div></div></div>', unsafe_allow_html=True)
         
-        st.markdown("#### 💾 Download")
-        col_d1, col_d2 = st.columns(2)
-        with col_d1:
-            if 'mp3_file' in st.session_state and os.path.exists(st.session_state['mp3_file']):
-                with open(st.session_state['mp3_file'], "rb") as f:
-                    st.download_button("🎵 MP3", f.read(), st.session_state['mp3_file'], "audio/mpeg", use_container_width=True)
-        with col_d2:
-            with open(st.session_state['video_file'], "rb") as f:
-                st.download_button("🎬 MP4", f.read(), st.session_state['video_file'], "video/mp4", use_container_width=True)
+        # Se está em cache, carrega diretamente
+        if cached_video:
+            st.session_state['video_file'] = cached_video
+            st.rerun()
 
 with col_right:
-    if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
-        st.markdown('<div class="video-container"><div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.8);"><h2 style="color: #ffd700;">⏳ Generating...</h2><p>Please wait.</p></div></div>', unsafe_allow_html=True)
-    elif 'video_file' in st.session_state and os.path.exists(st.session_state.get('video_file', '')):
-        st.markdown("### 🎬 Your Creation")
+    if st.session_state['video_file'] and os.path.exists(st.session_state['video_file']):
+        st.markdown('<div class="video-container">', unsafe_allow_html=True)
+        
+        # Badge de cache se aplicável
+        cache_badge = '<span class="cache-badge">⚡ CACHED</span>' if st.session_state.get('is_cached', False) else ''
+        st.markdown(f"### 🎥 Fire Visualization {cache_badge}", unsafe_allow_html=True)
+        
         st.video(st.session_state['video_file'])
+        st.markdown('</div>', unsafe_allow_html=True)
+        
+        col1, col2 = st.columns(2)
+        with col1:
+            with open(st.session_state['video_file'], 'rb') as f:
+                st.download_button(
+                    label="📥 Download Video",
+                    data=f,
+                    file_name=f"fires_{country}_{start_date}_{end_date}.mp4",
+                    mime="video/mp4"
+                )
+        with col2:
+            if st.button("🔄 Generate New"):
+                st.session_state['video_file'] = None
+                st.session_state['generate_clicked'] = False
+                st.rerun()
     else:
-        st.markdown('<div class="video-container"><div style="text-align: center; padding: 3rem; color: rgba(255,255,255,0.5);"><h2 style="color: #ffd700;">🎬 Your Video Will Appear Here</h2><p>Configure parameters and click GENERATE.</p></div></div>', unsafe_allow_html=True)
+        st.markdown('<div class="video-container">', unsafe_allow_html=True)
+        st.markdown("""
+            <div style='text-align: center; color: #888; padding: 3rem;'>
+                <div style='font-size: 64px; margin-bottom: 1rem;'>🔥</div>
+                <h3 style='color: #ff8c00;'>Ready to Visualize Fires</h3>
+                <p>Configure parameters and click "Generate Visualization"</p>
+            </div>
+        """, unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
 
-if 'generate_clicked' in st.session_state and st.session_state['generate_clicked']:
-    progress_bar = progress_placeholder.progress(0)
-    status_text = status_placeholder.empty()
-    
+# Processamento
+if st.session_state.get('generate_clicked', False) and not st.session_state.get('video_file'):
     try:
-        status_text.text("🔍 Fetching fire data from NASA...")
+        progress_placeholder = st.empty()
+        status_placeholder = st.empty()
+        
+        with progress_placeholder.container():
+            progress_bar = st.progress(0)
+        with status_placeholder.container():
+            status_text = st.empty()
+        
+        # Verifica cache novamente antes de processar
+        cached_video, cached_audio = get_cached_video(cache_key)
+        if cached_video:
+            status_text.text("⚡ Loading from cache...")
+            st.session_state['video_file'] = cached_video
+            st.session_state['is_cached'] = True
+            st.session_state['generate_clicked'] = False
+            progress_placeholder.empty()
+            status_placeholder.empty()
+            st.rerun()
+        
+        status_text.text("🌐 Fetching fire data from NASA FIRMS...")
         progress_bar.progress(5)
-        response = requests.get(f"https://firms.modaps.eosdis.nasa.gov/api/area/csv/{map_key}/MODIS_SP/world/{day_range}/{data_date}", timeout=30)
-        progress_bar.progress(10)
+        
+        url = f"https://firms.modaps.eosdis.nasa.gov/api/country/csv/f1eb3eb0e0d5f2be5dd87e9f7e3ddd65/VIIRS_SNPP_NRT/{country}/1"
+        response = requests.get(url)
+        if response.status_code != 200:
+            st.error(f"Failed to fetch data: HTTP {response.status_code}")
+            st.session_state['generate_clicked'] = False
+            st.stop()
+        
         df = pd.read_csv(StringIO(response.text))
-        df.columns = df.columns.str.strip().str.lower()
-        lat_col = next((c for c in df.columns if 'lat' in c), None)
-        lon_col = next((c for c in df.columns if 'lon' in c), None)
         
-        status_text.text("📊 Processing fire data...")
+        status_text.text("🔄 Processing fire data...")
         progress_bar.progress(15)
-        df['dist_km'] = distance_km(latitude_center, longitude_center, df[lat_col], df[lon_col])
-        df_local = df[df['dist_km'] <= radius_km].copy()
-        progress_bar.progress(20)
         
-        if not df_local.empty:
-            fires_per_day = df_local.groupby('acq_date').size().reset_index(name='n_fires')
-            st.session_state['stats_data'] = {'total': len(df_local), 'days': len(fires_per_day), 'avg': fires_per_day['n_fires'].mean(), 'peak': fires_per_day['n_fires'].max()}
-            
-            status_text.text("🎵 Composing fire symphony...")
+        df['acq_date'] = pd.to_datetime(df['acq_date'])
+        start_dt = pd.to_datetime(start_date)
+        end_dt = pd.to_datetime(end_date)
+        df = df[(df['acq_date'] >= start_dt) & (df['acq_date'] <= end_dt)].copy()
+        
+        if len(df) > 0:
+            status_text.text("🎵 Generating fire soundscape...")
             progress_bar.progress(25)
-            melody = compose_fire_symphony(fires_per_day, total_duration_sec)
+            
+            # Gera áudio e salva com cache key
+            soundscape, total_duration_sec = create_fire_soundscape(df, base_duration_sec=30.0)
+            audio_file = f"fires_sound_{cache_key}.mp3"
+            soundscape.export(audio_file, format="mp3", bitrate="192k")
+            
+            status_text.text("🗺️ Creating map visualizations...")
             progress_bar.progress(35)
-            melody.export("fires_sound.mp3", format="mp3", bitrate="192k")
-            st.session_state['mp3_file'] = "fires_sound.mp3"
-            progress_bar.progress(40)
             
-            lon_min = longitude_center - radius_km/100
-            lon_max = longitude_center + radius_km/100
-            lat_min = latitude_center - radius_km/100
-            lat_max = latitude_center + radius_km/100
+            lon_col = 'longitude'
+            lat_col = 'latitude'
+            lon_min, lon_max = df[lon_col].min() - 2, df[lon_col].max() + 2
+            lat_min, lat_max = df[lat_col].min() - 2, df[lat_col].max() + 2
+            
+            all_days = pd.date_range(start=df['acq_date'].min(), end=df['acq_date'].max(), freq='D')
+            fires_per_day = df.groupby('acq_date').size().reset_index(name='n_fires')
+            
+            os.makedirs("maps_png", exist_ok=True)
             images_files = []
-            all_days = fires_per_day['acq_date'].tolist()
-            n_days = len(fires_per_day)
-            n_fade_frames = 5  # Reduzido de 10 para 5
-            intro_frames = 15  # Reduzido de 30 para 15
             
-            status_text.text("🎬 Creating intro animation...")
-            for i in range(intro_frames):
-                progress = (i + 1) / intro_frames
-                progress_bar.progress(40 + int(10 * progress))
-                fig = plt.figure(figsize=(16, 9), dpi=100)  # Aumentado para 16:9
+            TARGET_WIDTH = 1280
+            TARGET_HEIGHT = 720
+            
+            intro_frames = 24
+            status_text.text("🎨 Creating intro sequence...")
+            for k in range(intro_frames):
+                alpha = (k + 1) / intro_frames
+                fig = plt.figure(figsize=(16, 9), dpi=100)
                 fig.patch.set_facecolor('black')
-                gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
-                ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
-                ax_bar = fig.add_subplot(gs[1])
-                fig.patch.set_facecolor('#000000')
-                ax_map.set_facecolor('black')
-                ax_bar.set_facecolor('black')
-                ax_map.set_extent([lon_min, lon_max, lat_min, lat_max], crs=ccrs.PlateCarree())
-                ax_map.add_feature(cfeature.LAND, facecolor='none', edgecolor='gray', linewidth=0.8)
-                ax_map.add_feature(cfeature.BORDERS, edgecolor='gray', linewidth=0.5)
-                ax_map.add_feature(cfeature.COASTLINE, edgecolor='gray', linewidth=0.5)
-                ax_map.set_xticks([])
-                ax_map.set_yticks([])
-                ax_map.plot(longitude_center, latitude_center, 'ro', markersize=15, transform=ccrs.PlateCarree(), alpha=0.8)
-                current_radius_km = radius_km * progress
-                lat_deg_radius = current_radius_km / 111
-                lon_deg_radius = current_radius_km / (111 * np.cos(np.radians(latitude_center)))
-                theta = np.linspace(0, 2*np.pi, 100)
-                lat_circle = latitude_center + lat_deg_radius * np.sin(theta)
-                lon_circle = longitude_center + lon_deg_radius * np.cos(theta)
-                ax_map.plot(lon_circle, lat_circle, 'r-', linewidth=2, transform=ccrs.PlateCarree(), alpha=0.7)
-                if progress > 0.7:
-                    lat_end = latitude_center + lat_deg_radius * np.sin(np.pi/4)
-                    lon_end = longitude_center + lon_deg_radius * np.cos(np.pi/4)
-                    ax_map.plot([longitude_center, lon_end], [latitude_center, lat_end], 'y-', linewidth=3, transform=ccrs.PlateCarree(), alpha=0.8)
-                    mid_lat = (latitude_center + lat_end)/2
-                    mid_lon = (longitude_center + lon_end)/2
-                    ax_map.text(mid_lon, mid_lat, f'{radius_km} km', color='white', fontsize=16, fontweight='bold', transform=ccrs.PlateCarree(), ha='center', va='center', bbox=dict(boxstyle="round,pad=0.3", facecolor='red', alpha=0.7))
-                ax_bar.set_facecolor('black')
-                ax_bar.set_xlim(0, 1)
-                ax_bar.set_ylim(0, 1)
-                ax_bar.set_xticks([])
-                ax_bar.set_yticks([])
-                for spine in ax_bar.spines.values():
-                    spine.set_visible(False)
-                for spine in ax_map.spines.values():
-                    spine.set_visible(False)
-                png_file = f"maps_png/intro_{i}.png"
-                fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0.1)  # DPI 100 + padding mínimo
+                ax = fig.add_subplot(111)
+                ax.set_facecolor('black')
+                ax.set_xlim(0, 1)
+                ax.set_ylim(0, 1)
+                ax.axis('off')
+                
+                title_alpha = min(alpha * 1.5, 1.0)
+                subtitle_alpha = max(0, (alpha - 0.3) * 1.5)
+                ax.text(0.5, 0.58, 'HEAR THE FIRE', ha='center', va='center', fontsize=60, 
+                       color='white', fontweight='bold', alpha=title_alpha)
+                ax.text(0.5, 0.42, f'{country} • {start_date} to {end_date}', ha='center', va='center',
+                       fontsize=24, color='#ff8c00', alpha=subtitle_alpha)
+                
+                png_file = f"maps_png/intro_{k}.png"
+                fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0.1)
                 plt.close(fig)
                 img = Image.open(png_file).convert("RGB")
-                # Redimensionar para preencher completamente
                 img = img.resize((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
                 img.save(png_file, quality=85, optimize=True)
                 images_files.append(png_file)
             
-            status_text.text("🔥 Rendering fire visualizations...")
-            total_fire_frames = n_days * n_fade_frames
-            for i, (day, n_fires) in enumerate(fires_per_day.values):
-                status_text.text(f"🔥 Rendering day {i+1}/{n_days}: {day} ({n_fires} fires)")
-                df_day = df_local[df_local['acq_date'] == day]
-                frp_norm = np.zeros(len(df_day))
-                if 'frp' in df_day.columns and not df_day['frp'].isna().all():
+            status_text.text("🔥 Rendering fire animations...")
+            total_days = len(all_days)
+            for i, day in enumerate(all_days):
+                progress = 35 + int(50 * (i / total_days))
+                progress_bar.progress(progress)
+                status_text.text(f"🔥 Rendering day {i+1}/{total_days}...")
+                
+                df_day = df[df['acq_date'] == day].copy()
+                if 'frp' in df_day.columns:
                     frp_norm = (df_day['frp'] - df_day['frp'].min()) / (df_day['frp'].max() - df_day['frp'].min() + 1e-6)
+                else:
+                    frp_norm = pd.Series([0.5]*len(df_day))
+                
+                n_fade_frames = 3
                 for k in range(n_fade_frames):
-                    frame_progress = (i * n_fade_frames + k) / total_fire_frames
-                    progress_bar.progress(50 + int(40 * frame_progress))
                     alpha = (k+1)/n_fade_frames
-                    fig = plt.figure(figsize=(16, 9), dpi=100)  # 16:9 aspect ratio
+                    fig = plt.figure(figsize=(16, 9), dpi=100)
                     fig.patch.set_facecolor('black')
                     gs = gridspec.GridSpec(2, 1, height_ratios=[3, 1], hspace=0.05)
                     ax_map = fig.add_subplot(gs[0], projection=ccrs.PlateCarree())
@@ -410,51 +453,42 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                     ax_map.set_xticks([])
                     ax_map.set_yticks([])
                     
-                    # VISUALIZAÇÃO CINEMATOGRÁFICA DE FOGO
                     if len(df_day) > 0:
-                        # Camada 1: Glow externo (vermelho escuro)
-                        glow_sizes = 400 + 100 * np.sin(alpha * np.pi * 2)  # Reduzido
+                        glow_sizes = 400 + 100 * np.sin(alpha * np.pi * 2)
                         ax_map.scatter(df_day[lon_col], df_day[lat_col], 
                                      c='#8B0000', s=glow_sizes, alpha=0.15 * alpha,
                                      transform=ccrs.PlateCarree())
                         
-                        # Camada 2: Halo alaranjado médio
-                        halo_sizes = 250 + 80 * np.sin(alpha * np.pi * 2)  # Reduzido
+                        halo_sizes = 250 + 80 * np.sin(alpha * np.pi * 2)
                         ax_map.scatter(df_day[lon_col], df_day[lat_col], 
                                      c='#FF4500', s=halo_sizes, alpha=0.25 * alpha,
                                      transform=ccrs.PlateCarree())
                         
-                        # Camada 3: Core laranja brilhante
-                        core_sizes = 150 + 60 * np.sin(alpha * np.pi * 2)  # Reduzido
+                        core_sizes = 150 + 60 * np.sin(alpha * np.pi * 2)
                         ax_map.scatter(df_day[lon_col], df_day[lat_col], 
                                      c='#FF8C00', s=core_sizes, alpha=0.6 * alpha,
                                      linewidths=0, transform=ccrs.PlateCarree())
                         
-                        # Camada 4: Centro amarelo intenso (variação por intensidade)
                         center_colors = plt.cm.YlOrRd(frp_norm * 0.7 + 0.3)
-                        center_sizes = 80 + 50 * np.sin(alpha * np.pi * 3) * (1 + frp_norm)  # Reduzido
+                        center_sizes = 80 + 50 * np.sin(alpha * np.pi * 3) * (1 + frp_norm)
                         ax_map.scatter(df_day[lon_col], df_day[lat_col], 
                                      c=center_colors, s=center_sizes, alpha=0.85 * alpha,
-                                     edgecolors='#FFD700', linewidths=1,  # Linewidth reduzido
+                                     edgecolors='#FFD700', linewidths=1,
                                      transform=ccrs.PlateCarree())
                         
-                        # Camada 5: Núcleo branco brilhante para focos intensos
                         high_intensity = df_day[df_day['frp'] > df_day['frp'].quantile(0.7)] if 'frp' in df_day.columns else df_day.head(int(len(df_day)*0.3))
                         if len(high_intensity) > 0:
-                            white_sizes = 60 + 40 * np.sin(alpha * np.pi * 4)  # Reduzido
+                            white_sizes = 60 + 40 * np.sin(alpha * np.pi * 4)
                             ax_map.scatter(high_intensity[lon_col], high_intensity[lat_col], 
                                          c='white', s=white_sizes, alpha=0.9 * alpha,
                                          edgecolors='#FFFF00', linewidths=1.5,
                                          transform=ccrs.PlateCarree(), marker='*', zorder=10)
-                            
-                            # Partículas ascendentes (simulando fagulhas) - REMOVIDO para otimizar
                         
-                        # Efeito de pulsação - reduzido
-                        if k % 2 == 0:  # A cada 2 frames (ao invés de 3)
-                            burst_indices = np.random.choice(len(df_day), size=min(3, len(df_day)), replace=False)  # 3 ao invés de 5
+                        if k % 2 == 0:
+                            burst_indices = np.random.choice(len(df_day), size=min(3, len(df_day)), replace=False)
                             burst_points = df_day.iloc[burst_indices]
                             ax_map.scatter(burst_points[lon_col], burst_points[lat_col],
-                                         c='#FF0000', s=500, alpha=0.2,  # Tamanho reduzido
+                                         c='#FF0000', s=500, alpha=0.2,
                                          transform=ccrs.PlateCarree())
                     
                     bar_heights = [fires_per_day.loc[fires_per_day['acq_date']==d,'n_fires'].values[0] if d<=day else 0 for d in all_days]
@@ -478,10 +512,9 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
                         spine.set_visible(False)
                     ax_map.tick_params(left=False, right=False, top=False, bottom=False)
                     png_file = f"maps_png/map_{i}_{k}.png"
-                    fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0.1)  # DPI 100 + padding
+                    fig.savefig(png_file, facecolor='#000000', dpi=100, bbox_inches='tight', pad_inches=0.1)
                     plt.close(fig)
                     img = Image.open(png_file).convert("RGB")
-                    # Redimensionar mantendo aspect ratio e preenchendo o frame
                     img = img.resize((TARGET_WIDTH, TARGET_HEIGHT), Image.Resampling.LANCZOS)
                     img.save(png_file, quality=85, optimize=True)
                     images_files.append(png_file)
@@ -497,8 +530,8 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             frame_durations = [intro_frame_duration] * intro_frames + [fires_frame_duration] * fires_frame_count
             
             clip = ImageSequenceClip(images_files, durations=frame_durations)
-            clip = clip.on_color(size=(1280, 720), color=(0,0,0))  # Resolução ajustada
-            audio_clip = AudioFileClip("fires_sound.mp3")
+            clip = clip.on_color(size=(1280, 720), color=(0,0,0))
+            audio_clip = AudioFileClip(audio_file)
             
             def make_frame(t):
                 return [0, 0]
@@ -510,10 +543,17 @@ if 'generate_clicked' in st.session_state and st.session_state['generate_clicked
             
             status_text.text("💾 Exporting final video...")
             progress_bar.progress(95)
-            clip.write_videofile("fires_video.mp4", codec="libx264", audio_codec="aac", verbose=False, logger=None)
+            video_file = f"fires_video_{cache_key}.mp4"
+            clip.write_videofile(video_file, codec="libx264", audio_codec="aac", verbose=False, logger=None)
+            
+            # Salva no cache
+            status_text.text("💾 Saving to cache...")
+            cached_video, cached_audio = save_to_cache(cache_key, video_file, audio_file)
+            
             progress_bar.progress(100)
             status_text.text("✅ Complete!")
-            st.session_state['video_file'] = "fires_video.mp4"
+            st.session_state['video_file'] = cached_video
+            st.session_state['is_cached'] = False  # Era novo, agora está em cache
             st.session_state['generate_clicked'] = False
             progress_placeholder.empty()
             status_placeholder.empty()
